@@ -2,6 +2,8 @@ package com.Capstone.EduX.student;
 
 import org.springframework.stereotype.Service;
 
+import java.util.Optional;
+
 @Service
 public class StudentJoinService {
     private final StudentRepository studentRepository;
@@ -24,7 +26,20 @@ public class StudentJoinService {
     }
 
     public boolean isUserIdDuplicate(String userId) {
-        return studentRepository.existsByUserId(userId);
+        return studentRepository.existsBystudentId(userId);
+    }
+
+    //로그인 로직
+    public boolean login(String userId, String password) {
+        Optional<Student> optionalStudent = studentRepository.findBystudentId(userId);
+
+        if (optionalStudent.isEmpty()) {
+            return false;
+        }
+
+        Student student = optionalStudent.get();
+
+        return student.getPassword().equals(password);
     }
 
 }
