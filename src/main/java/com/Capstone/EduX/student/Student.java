@@ -1,14 +1,13 @@
 package com.Capstone.EduX.student;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
+import jakarta.persistence.*;
 
 @Entity
+@Table(name = "student")
 public class Student {
 
-    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     private String studentId;
     private String password;
@@ -24,6 +23,11 @@ public class Student {
         this.studentNumber = studentNumber;
         this.phoneNumber = phoneNumber;
     }
+
+    public Student() {
+
+    }
+
 
     public Long getId() {
         return id;

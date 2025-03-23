@@ -1,6 +1,13 @@
 package com.Capstone.EduX.professor;
 
+import jakarta.persistence.*;
+
+@Entity
+@Table(name = "professor")
 public class Professor {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;         // PK
     private String name;     // 교수 이름
     private String username; // 아이디
@@ -15,6 +22,10 @@ public class Professor {
         this.password = password;
         this.email = email;
         this.department = department;
+    }
+
+    public Professor() {
+
     }
 
     public Long getId() {

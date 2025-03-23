@@ -1,5 +1,6 @@
 package com.Capstone.EduX.Entity;
 
+import com.Capstone.EduX.professor.Professor;
 import jakarta.persistence.*;
 
 @Entity
