@@ -1,5 +1,7 @@
 package com.Capstone.EduX.Entity;
 
+import com.Capstone.EduX.Classroom.Classroom;
+import com.Capstone.EduX.examInfo.ExamInfo;
 import com.Capstone.EduX.student.Student;
 import jakarta.persistence.*;
 

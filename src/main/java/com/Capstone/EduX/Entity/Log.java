@@ -1,6 +1,9 @@
 // Log.java
 package com.Capstone.EduX.Entity;
 
+import com.Capstone.EduX.Classroom.Classroom;
+import com.Capstone.EduX.StudentClassroom.StudentClassroom;
+import com.Capstone.EduX.examInfo.ExamInfo;
 import jakarta.persistence.*;
 
 @Entity

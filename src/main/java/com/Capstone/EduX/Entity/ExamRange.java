@@ -1,6 +1,7 @@
 // ExamRange.java
 package com.Capstone.EduX.Entity;
 
+import com.Capstone.EduX.examInfo.ExamInfo;
 import jakarta.persistence.*;
 
 @Entity
