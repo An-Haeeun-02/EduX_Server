@@ -1,0 +1,49 @@
+package com.Capstone.EduX.Classroom;
+
+import com.Capstone.EduX.professor.Professor;
+import jakarta.persistence.*;
+
+@Entity
+@Table(name = "classroom")
+public class Classroom {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+    private String className;
+    private String accessCode;
+
+    @ManyToOne
+    private Professor professor;
+
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public String getClassName() {
+        return className;
+    }
+
+    public void setClassName(String className) {
+        this.className = className;
+    }
+
+    public String getAccessCode() {
+        return accessCode;
+    }
+
+    public void setAccessCode(String accessCode) {
+        this.accessCode = accessCode;
+    }
+
+    public Professor getProfessor() {
+        return professor;
+    }
+
+    public void setProfessor(Professor professor) {
+        this.professor = professor;
+    }
+}
