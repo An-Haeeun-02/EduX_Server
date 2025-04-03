@@ -1,22 +1,10 @@
 package com.Capstone.EduX;
 
-import com.Capstone.EduX.professor.MemoryProfessorRepository;
-import com.Capstone.EduX.professor.ProfessorRepository;
-import com.Capstone.EduX.professor.ProfessorService;
-import com.Capstone.EduX.professor.ProfessorServiceImpl;
-import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 
 @Configuration
-public class AppConfig {
-
-    @Bean
-    public ProfessorService professorService() {
-        return new ProfessorServiceImpl(professorRepository());
-    }
-
-    @Bean
-    public ProfessorRepository professorRepository() {
-        return new MemoryProfessorRepository();
-    }
-}
+@ComponentScan(basePackages = "com.Capstone.EduX")
+@EnableJpaRepositories(basePackages = "com.Capstone.EduX")
+public class AppConfig { }

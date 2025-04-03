@@ -25,7 +25,6 @@ public class Professor {
     }
 
     public Professor() {
-
     }
 
     public Long getId() {

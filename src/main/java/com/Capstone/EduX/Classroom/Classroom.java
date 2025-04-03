@@ -10,6 +10,8 @@ public class Classroom {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     private String className;
+    private String section;
+    private String time;
     private String accessCode;
 
     @ManyToOne
@@ -45,5 +47,21 @@ public class Classroom {
 
     public void setProfessor(Professor professor) {
         this.professor = professor;
+    }
+
+    public String getTime() {
+        return time;
+    }
+
+    public void setTime(String time) {
+        this.time = time;
+    }
+
+    public String getSection() {
+        return section;
+    }
+
+    public void setSection(String section) {
+        this.section = section;
     }
 }

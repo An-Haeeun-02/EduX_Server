@@ -1,33 +1,12 @@
-package com.Capstone.EduX.examInfo;
+package com.Capstone.EduX.examInfo.dto;
 
-import com.Capstone.EduX.Classroom.Classroom;
-import jakarta.persistence.*;
-
-@Entity
-@Table(name = "exam_info")
-public class ExamInfo {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+public class ExamCreateRequest {
     private String title;
     private Integer timeLimit;
     private Integer duration;
     private String notice;
     private Integer questionCount;
-
-
-    @ManyToOne
-    private Classroom classroom;
-
-
-
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
+    private Long classroomId;
 
     public String getTitle() {
         return title;
@@ -69,11 +48,11 @@ public class ExamInfo {
         this.questionCount = questionCount;
     }
 
-    public Classroom getClassroom() {
-        return classroom;
+    public Long getClassroomId() {
+        return classroomId;
     }
 
-    public void setClassroom(Classroom classroom) {
-        this.classroom = classroom;
+    public void setClassroomId(Long classroomId) {
+        this.classroomId = classroomId;
     }
 }
