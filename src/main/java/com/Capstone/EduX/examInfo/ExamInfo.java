@@ -13,7 +13,6 @@ public class ExamInfo {
     private Integer timeLimit;
     private Integer duration;
     private String notice;
-    private String subjectName;
     private Integer questionCount;
 
 
@@ -60,14 +59,6 @@ public class ExamInfo {
 
     public void setNotice(String notice) {
         this.notice = notice;
-    }
-
-    public String getSubjectName() {
-        return subjectName;
-    }
-
-    public void setSubjectName(String subjectName) {
-        this.subjectName = subjectName;
     }
 
     public Integer getQuestionCount() {
