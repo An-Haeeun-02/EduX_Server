@@ -20,4 +20,14 @@ public interface ExamInfoRepository extends JpaRepository<ExamInfo, Long> {
     //duration ≥ 현재시간
     List<ExamInfo> findActiveExamsByClassroomId(@Param("classroomId") Long classroomId,
                                                 @Param("now") LocalDateTime now);
+
+    @Query("""
+    SELECT e
+    FROM ExamInfo e
+    WHERE e.classroom.id = :classroomId
+      AND e.classroom.professor.id = :professorId
+""")
+    List<ExamInfo> findAllExamsByClassroomIdAndProfessorId(@Param("classroomId") Long classroomId, @Param("professorId") Long professorId);
+
+
 }
