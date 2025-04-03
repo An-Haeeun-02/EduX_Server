@@ -12,7 +12,7 @@ public class StudentClassroom {
     private Long id;
 
     @ManyToOne
-    private Classroom classroom;
+    private Classroom classroomID;
 
     @ManyToOne
     private Student student;
@@ -21,7 +21,7 @@ public class StudentClassroom {
 
     public StudentClassroom(Long id, Classroom classroom, Student student, boolean isConnected) {
         this.id = id;
-        this.classroom = classroom;
+        this.classroomID = classroom;
         this.student = student;
         this.isConnected = isConnected;
     }
@@ -40,11 +40,11 @@ public class StudentClassroom {
     }
 
     public Classroom getClassroom() {
-        return classroom;
+        return classroomID;
     }
 
     public void setClassroom(Classroom classroom) {
-        this.classroom = classroom;
+        this.classroomID = classroom;
     }
 
     public Student getStudent() {

@@ -29,10 +29,6 @@ public class ExamInfoService {
 
         ExamInfo exam = new ExamInfo();
         exam.setTitle(request.getTitle());
-        exam.setTimeLimit(request.getTimeLimit());
-        exam.setDuration(request.getDuration());
-        exam.setNotice(request.getNotice());
-        exam.setQuestionCount(request.getQuestionCount());
         exam.setClassroom(classroom);
 
         return repository.save(exam);
