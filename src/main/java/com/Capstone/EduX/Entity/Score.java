@@ -5,6 +5,8 @@ import com.Capstone.EduX.examInfo.ExamInfo;
 import com.Capstone.EduX.student.Student;
 import jakarta.persistence.*;
 
+import java.time.LocalDateTime;
+
 @Entity
 @Table(name = "score")
 public class Score {
@@ -22,5 +24,6 @@ public class Score {
     private ExamInfo examInfo;
 
     private Integer score;
-    private Integer duration;
+    private LocalDateTime studentTestStartTime;
+    private LocalDateTime studentTestEndTime;
 }

@@ -13,7 +13,7 @@ import java.util.List;
 public interface StudentClassroomRepository extends JpaRepository<StudentClassroom, Long> {
 
     @Query("""
-        SELECT sc.classroom
+        SELECT sc.classroomID
         FROM StudentClassroom sc
         WHERE sc.student.studentId = :studentId
           AND sc.isConnected = true

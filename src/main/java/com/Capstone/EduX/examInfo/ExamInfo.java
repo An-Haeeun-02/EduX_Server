@@ -3,6 +3,8 @@ package com.Capstone.EduX.examInfo;
 import com.Capstone.EduX.Classroom.Classroom;
 import jakarta.persistence.*;
 
+import java.time.LocalDateTime;
+
 @Entity
 @Table(name = "exam_info")
 public class ExamInfo {
@@ -10,8 +12,10 @@ public class ExamInfo {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     private String title;
-    private Integer timeLimit;
-    private Integer duration;
+    private LocalDateTime startTime;
+    private LocalDateTime endTime;
+    private LocalDateTime testStartTime;
+    private LocalDateTime testEndTime;
     private String notice;
     private Integer questionCount;
 
@@ -37,20 +41,36 @@ public class ExamInfo {
         this.title = title;
     }
 
-    public Integer getTimeLimit() {
-        return timeLimit;
+    public LocalDateTime getStartTime() {
+        return startTime;
     }
 
-    public void setTimeLimit(Integer timeLimit) {
-        this.timeLimit = timeLimit;
+    public void setStartTime(LocalDateTime startTime) {
+        this.startTime = startTime;
     }
 
-    public Integer getDuration() {
-        return duration;
+    public LocalDateTime getEndTime() {
+        return endTime;
     }
 
-    public void setDuration(Integer duration) {
-        this.duration = duration;
+    public void setEndTime(LocalDateTime endTime) {
+        this.endTime = endTime;
+    }
+
+    public LocalDateTime getTestStartTime() {
+        return testStartTime;
+    }
+
+    public void setTestStartTime(LocalDateTime testStartTime) {
+        this.testStartTime = testStartTime;
+    }
+
+    public LocalDateTime getTestEndTime() {
+        return testEndTime;
+    }
+
+    public void setTestEndTime(LocalDateTime testEndTime) {
+        this.testEndTime = testEndTime;
     }
 
     public String getNotice() {
