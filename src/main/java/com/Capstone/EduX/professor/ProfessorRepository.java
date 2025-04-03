@@ -1,7 +1,9 @@
 package com.Capstone.EduX.professor;
 
-public interface ProfessorRepository {
-    void save(Professor professor);
-    Professor findById(Long id);
-    Professor findByUsername(String username);
+import org.springframework.data.jpa.repository.JpaRepository;
+import java.util.Optional;
+
+public interface ProfessorRepository extends JpaRepository<Professor, Long> {
+    boolean existsByUsername(String username);
+    Optional<Professor> findByUsername(String username);
 }
