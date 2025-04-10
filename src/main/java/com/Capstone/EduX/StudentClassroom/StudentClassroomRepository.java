@@ -20,6 +20,6 @@ public interface StudentClassroomRepository extends JpaRepository<StudentClassro
     """)
     List<Classroom> findClassroomsByStudentId(@Param("studentId") String studentId);
 
-    boolean existsByStudentAndClassroom(Student student, Classroom classroom);
+    boolean existsByStudentAndClassroomID(Student student, Classroom classroom);
 
 }

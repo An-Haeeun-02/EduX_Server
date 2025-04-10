@@ -14,10 +14,10 @@ public class StudentJoinService {
 
     public void register(Student student) {
         // 이름+학번+전화번호 조합 중복 확인
-        if (studentRepository.existsByNameAndStudentNumberAndPhoneNumber(
+        if (studentRepository.existsByNameAndStudentNumberAndEmail(
                 student.getName(),
                 student.getStudentNumber(),
-                student.getPhoneNumber())) {
+                student.getEmail())) {
             throw new IllegalArgumentException("이미 등록된 사용자 정보입니다.");
         }
 

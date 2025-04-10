@@ -4,10 +4,7 @@ import com.Capstone.EduX.examInfo.dto.ExamCreateRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @RestController
 @RequestMapping("/api/exams")
@@ -47,6 +44,18 @@ public class ExamInfoController {
 
         List<ExamInfo> exams = service.getExamsByClassroomIdAndProfessorId(classroomId, professorId);
         return ResponseEntity.ok(exams);
+    }
+
+    @PutMapping("/update")
+    public ResponseEntity<?> updateExam(@RequestBody Map<String, Object> request) {
+        try {
+            String title = service.updateExamInfo(request);
+            return ResponseEntity.ok("시험 수정 완료: " + title);
+        } catch (NoSuchElementException e) {
+            return ResponseEntity.status(404).body("시험을 찾을 수 없습니다.");
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("시험 수정 실패: " + e.getMessage());
+        }
     }
 
 

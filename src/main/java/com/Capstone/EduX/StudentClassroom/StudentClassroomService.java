@@ -42,7 +42,7 @@ public class StudentClassroomService {
         }
 
         // 3. 이미 가입했는지 확인
-        boolean exists = studentClassroomRepository.existsByStudentAndClassroom(student, classroom);
+        boolean exists = studentClassroomRepository.existsByStudentAndClassroomID(student, classroom);
         if (exists) {
             throw new IllegalStateException("이미 참여한 강의실입니다.");
         }
