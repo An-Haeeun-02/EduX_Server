@@ -21,9 +21,9 @@ public class ExamInfoService {
         this.classroomRepository = classroomRepository;
     }
 
-    public List<ExamInfo> getActiveExams(Long classroomId) {
-        return repository.findActiveExamsByClassroomId(classroomId, LocalDateTime.now());
-    }
+//    public List<ExamInfo> getActiveExams(Long classroomId) {
+//        return repository.findActiveExamsByClassroomId(classroomId, LocalDateTime.now());
+//    }
 
     public ExamInfo createExam(ExamCreateRequest request) {
         Classroom classroom = classroomRepository.findById(request.getClassroomId())
@@ -59,6 +59,12 @@ public class ExamInfoService {
         repository.save(exam);
 
         return exam.getTitle();
+    }
+
+    public ExamInfo getExamInfoById(Long examId) {
+        return repository.findById(examId)
+                .orElseThrow(() -> new NoSuchElementException("시험 정보를 찾을 수 없습니다."));
+
     }
 
 
