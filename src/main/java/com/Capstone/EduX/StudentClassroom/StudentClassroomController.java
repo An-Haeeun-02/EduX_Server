@@ -48,19 +48,19 @@ import java.util.Map;
             return ResponseEntity.ok(result);
         }
 
-        @GetMapping("/active-exams/{classroomId}")
-        public ResponseEntity<List<Map<String, Object>>> getActiveExams(@PathVariable Long classroomId) {
-            List<ExamInfo> exams = examInfoService.getActiveExams(classroomId);
-
-            List<Map<String, Object>> result = exams.stream().map(e -> {
-                Map<String, Object> map = new HashMap<>();
-                map.put("id", e.getId());
-                map.put("title", e.getTitle());
-                return map;
-            }).toList();
-
-            return ResponseEntity.ok(result);
-        }
+//        @GetMapping("/active-exams/{classroomId}")
+//        public ResponseEntity<List<Map<String, Object>>> getActiveExams(@PathVariable Long classroomId) {
+//            List<ExamInfo> exams = examInfoService.getActiveExams(classroomId);
+//
+//            List<Map<String, Object>> result = exams.stream().map(e -> {
+//                Map<String, Object> map = new HashMap<>();
+//                map.put("id", e.getId());
+//                map.put("title", e.getTitle());
+//                return map;
+//            }).toList();
+//
+//            return ResponseEntity.ok(result);
+//        }
 
     @PostMapping("/join-classroom")
     public ResponseEntity<?> joinClassroom(@RequestBody Map<String, String> request) {

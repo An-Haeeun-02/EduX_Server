@@ -11,15 +11,15 @@ import java.util.List;
 @Repository
 public interface ExamInfoRepository extends JpaRepository<ExamInfo, Long> {
 
-    @Query("""
-        SELECT e
-        FROM ExamInfo e
-        WHERE e.classroom.id = :classroomId
-          AND e.duration >= 6
-    """)
+//    @Query("""
+//        SELECT e
+//        FROM ExamInfo e
+//        WHERE e.classroom.id = :classroomId
+//          AND e.duration >= 6
+//    """)
     //duration ≥ 현재시간
-    List<ExamInfo> findActiveExamsByClassroomId(@Param("classroomId") Long classroomId,
-                                                @Param("now") LocalDateTime now);
+//    List<ExamInfo> findActiveExamsByClassroomId(@Param("classroomId") Long classroomId,
+//                                                @Param("now") LocalDateTime now);
 
     @Query("""
     SELECT e

@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.NoSuchElementException;
 
 @Service
 public class ExamInfoService {
@@ -19,9 +20,9 @@ public class ExamInfoService {
         this.classroomRepository = classroomRepository;
     }
 
-    public List<ExamInfo> getActiveExams(Long classroomId) {
-        return repository.findActiveExamsByClassroomId(classroomId, LocalDateTime.now());
-    }
+//    public List<ExamInfo> getActiveExams(Long classroomId) {
+//        return repository.findActiveExamsByClassroomId(classroomId, LocalDateTime.now());
+//    }
 
     public ExamInfo createExam(ExamCreateRequest request) {
         Classroom classroom = classroomRepository.findById(request.getClassroomId())
@@ -36,6 +37,11 @@ public class ExamInfoService {
 
     public List<ExamInfo> getExamsByClassroomIdAndProfessorId(Long classroomId, Long professorId) {
         return repository.findAllExamsByClassroomIdAndProfessorId(classroomId, professorId);
+    }
+
+    public ExamInfo getExamInfoById(Long examId) {
+        return repository.findById(examId)
+                .orElseThrow(() -> new NoSuchElementException("시험 정보를 찾을 수 없습니다."));
     }
 
 
