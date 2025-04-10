@@ -80,7 +80,7 @@ import java.util.Map;
         }
 
         // 3. 이미 참여 중인지 확인
-        boolean alreadyJoined = studentClassroomRepository.existsByStudentAndClassroomID(student, classroom);
+        boolean alreadyJoined = studentClassroomRepository.existsByStudentAndClassroom(student, classroom);
         if (alreadyJoined) {
             return ResponseEntity.status(409).body("이미 참여한 강의실입니다.");
         }
