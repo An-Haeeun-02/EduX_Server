@@ -13,15 +13,15 @@ public class Student {
     private String password;
     private Long studentNumber;
     private String name;
-    private String phoneNumber;
+    private String email;
 
     // 생성자
-    public Student(String userId, String password, String name, Long studentNumber, String phoneNumber) {
+    public Student(String userId, String password, String name, Long studentNumber, String email) {
         this.studentId = userId;
         this.password = password;
         this.name = name;
         this.studentNumber = studentNumber;
-        this.phoneNumber = phoneNumber;
+        this.email = email;
     }
 
     public Student() {
@@ -69,11 +69,11 @@ public class Student {
         this.name = name;
     }
 
-    public String getPhoneNumber() {
-        return phoneNumber;
+    public String getEmail() {
+        return email;
     }
 
-    public void setPhoneNumber(String phoneNumber) {
-        this.phoneNumber = phoneNumber;
+    public void setEmail(String email) {
+        this.email = email;
     }
 }

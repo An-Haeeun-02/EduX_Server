@@ -93,7 +93,7 @@ import java.util.Map;
             Map<String, Object> result = new HashMap<>();
             result.put("studentNumber", student.getStudentNumber());
             result.put("name", student.getName());
-            result.put("phoneNumber", student.getPhoneNumber());
+            result.put("phoneNumber", student.getEmail());
 
             return ResponseEntity.ok(result);
         }
