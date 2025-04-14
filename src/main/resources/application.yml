@@ -2,7 +2,7 @@ spring:
   datasource:
     url: jdbc:mysql://localhost:3306/EduX
     username: "root"    # ✅ 여기에 실제 MySQL 사용자 이름 입력
-    password: "0531"  # ✅ 여기에 실제 비밀번호 입력
+    password: "root"  # ✅ 여기에 실제 비밀번호 입력
     driver-class-name: com.mysql.cj.jdbc.Driver
 
   jpa:
@@ -13,4 +13,4 @@ spring:
 
   data:
     mongodb:
-      uri:  #잠금
+      uri:
