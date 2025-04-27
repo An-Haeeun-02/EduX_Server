@@ -1,6 +1,7 @@
 package com.Capstone.EduX.examInfo;
 
 import com.Capstone.EduX.examInfo.dto.ExamCreateRequest;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -11,9 +12,11 @@ import java.util.*;
 public class ExamInfoController {
 
     private final ExamInfoService service;
+    private final ExamInfoService examInfoService;
 
-    public ExamInfoController(ExamInfoService service) {
+    public ExamInfoController(ExamInfoService service, ExamInfoService examInfoService) {
         this.service = service;
+        this.examInfoService = examInfoService;
     }
 
     //활성화 된 강의실에서
@@ -55,6 +58,32 @@ public class ExamInfoController {
             return ResponseEntity.status(404).body("시험을 찾을 수 없습니다.");
         } catch (Exception e) {
             return ResponseEntity.badRequest().body("시험 수정 실패: " + e.getMessage());
+        }
+    }
+
+    //시험 대기 접근 활성화 여부
+    @GetMapping("/{examID}/access")
+    public ResponseEntity<?> checkIdleExamAccess(@PathVariable Long examID) {
+        try {
+            Map<String, Object> result = examInfoService.checkIdleExamAccess(examID);
+            return ResponseEntity.ok(result);
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            return ResponseEntity
+                    .status(HttpStatus.BAD_REQUEST)
+                    .body(e.getMessage());
+        }
+    }
+
+    //시험 접근 활성화 여부
+    @GetMapping("/{examID}/accessTest")
+    public ResponseEntity<?> checkExamAccess(@PathVariable Long examID) {
+        try {
+            Map<String, Object> result = examInfoService.checkExamAccess(examID);
+            return ResponseEntity.ok(result);
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            return ResponseEntity
+                    .status(HttpStatus.BAD_REQUEST)
+                    .body(e.getMessage());
         }
     }
 
