@@ -1,5 +1,6 @@
 package com.Capstone.EduX.examQuestion;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -61,10 +62,17 @@ public class ExamQuestionController {
         return Map.of("id", saved.getId()); // key: id, value: 실제 ID
     }
 
-    @GetMapping("/exam/{examId}") //시험 별 문제 리스트 조회
-    public List<ExamQuestion> getByExamId(@PathVariable Long examId) {
-        return examQuestionService.findByExamId(examId);
+    @GetMapping("/exam/{examId}") // /api/exam-question/exam/1
+    public ResponseEntity<?> getQuestions(@PathVariable Long examId) {
+        List<Map<String, Object>> questions = examQuestionService.getQuestionsWithoutAnswer(examId);
+
+        if (questions.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("해당 시험의 문제가 없습니다.");
+        }
+
+        return ResponseEntity.ok(questions); // 정답 없이 문제만 보냄
     }
+
 
     @GetMapping // 전체 문제 리스트 가져오기
     public List<ExamQuestion> getAll() {

@@ -4,6 +4,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
+
 
 @Repository
 public interface ExamResultRepository extends JpaRepository<ExamResult, Long> {
@@ -13,4 +15,10 @@ public interface ExamResultRepository extends JpaRepository<ExamResult, Long> {
 
     // 특정 학생이 응시한 특정 시험의 결과
     List<ExamResult> findByUserIdAndExamInfoId(Long userId, Long examInfoId);
+
+    // 시험 ID와 사용자 ID로 조회
+    List<ExamResult> findByExamInfoIdAndUserId(Long examId, Long userId);
+
+    //시험 저장(단일)
+    Optional<ExamResult> findByExamInfoIdAndUserIdAndExamQuestionId(Long examInfoId, Long userId, String examQuestionId);
 }

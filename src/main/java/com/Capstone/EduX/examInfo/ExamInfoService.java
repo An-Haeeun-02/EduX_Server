@@ -5,7 +5,9 @@ import com.Capstone.EduX.Classroom.ClassroomRepository;
 import com.Capstone.EduX.examInfo.dto.ExamCreateRequest;
 import org.springframework.stereotype.Service;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
@@ -13,11 +15,11 @@ import java.util.NoSuchElementException;
 @Service
 public class ExamInfoService {
 
-    private final ExamInfoRepository repository;
+    private final ExamInfoRepository examInfoRepository;
     private final ClassroomRepository classroomRepository;
 
-    public ExamInfoService(ExamInfoRepository repository,ClassroomRepository classroomRepository) {
-        this.repository = repository;
+    public ExamInfoService(ExamInfoRepository examInfoRepository,ClassroomRepository classroomRepository) {
+        this.examInfoRepository = examInfoRepository;
         this.classroomRepository = classroomRepository;
     }
 
@@ -33,17 +35,17 @@ public class ExamInfoService {
         exam.setTitle(request.getTitle());
         exam.setClassroom(classroom);
 
-        return repository.save(exam);
+        return examInfoRepository.save(exam);
     }
 
     public List<ExamInfo> getExamsByClassroomIdAndProfessorId(Long classroomId, Long professorId) {
-        return repository.findAllExamsByClassroomIdAndProfessorId(classroomId, professorId);
+        return examInfoRepository.findAllExamsByClassroomIdAndProfessorId(classroomId, professorId);
     }
 
     public String updateExamInfo(Map<String, Object> req) {
         Long examId = Long.valueOf(req.get("id").toString());
 
-        ExamInfo exam = repository.findById(examId)
+        ExamInfo exam = examInfoRepository.findById(examId)
                 .orElseThrow(() -> new NoSuchElementException("해당 시험이 존재하지 않습니다."));
 
         // 수정 가능한 필드들 업데이트
@@ -56,15 +58,65 @@ public class ExamInfoService {
         exam.setTestStartTime(LocalDateTime.parse((String) req.get("testStartTime")));
         exam.setTestEndTime(LocalDateTime.parse((String) req.get("testEndTime")));
 
-        repository.save(exam);
+        examInfoRepository.save(exam);
 
         return exam.getTitle();
     }
 
     public ExamInfo getExamInfoById(Long examId) {
-        return repository.findById(examId)
+        return examInfoRepository.findById(examId)
                 .orElseThrow(() -> new NoSuchElementException("시험 정보를 찾을 수 없습니다."));
 
+    }
+
+    //시험 대기 접근 활성화 여부
+    public Map<String, Object> checkIdleExamAccess(Long examId) {
+        //시험 존재 여부 조회
+        ExamInfo exam = examInfoRepository.findById(examId)
+                .orElseThrow(() -> new IllegalArgumentException("해당 시험이 존재하지 않습니다."));
+
+        //현재 시간 now변수에 저장
+        LocalDateTime now = LocalDateTime.now();
+
+        //현재 시간을 기준으로 비교
+        if (now.isBefore(exam.getStartTime()) || now.isAfter(exam.getEndTime())) {
+            throw new IllegalStateException("접근 가능 시간이 아닙니다."); //예외 발생
+        }
+
+        // 응답 데이터만 뽑아서 Map으로 구성
+        Map<String, Object> response = new HashMap<>();
+        response.put("title", exam.getTitle());
+        response.put("notice", exam.getNotice());
+        response.put("testStartTime", exam.getTestStartTime());
+
+        return response;
+    }
+
+    //시험 대기 접근 활성화 여부
+    public Map<String, Object> checkExamAccess(Long examId) {
+        //시험 존재 여부 조회
+        ExamInfo exam = examInfoRepository.findById(examId)
+                .orElseThrow(() -> new IllegalArgumentException("해당 시험이 존재하지 않습니다."));
+
+        //현재 시간 now변수에 저장
+        LocalDateTime now = LocalDateTime.now();
+
+        //현재 시간을 기준으로 비교
+        if (now.isBefore(exam.getStartTime()) || now.isAfter(exam.getEndTime())) {
+            throw new IllegalStateException("접근 가능 시간이 아닙니다."); //예외 발생
+        }
+
+        Duration duration = Duration.between(exam.getStartTime(), exam.getEndTime());
+
+        // 응답 데이터만 뽑아서 Map으로 구성
+        Map<String, Object> response = new HashMap<>();
+        response.put("title", exam.getTitle());
+        response.put("id", exam.getId());
+        response.put("testStartTime", exam.getTestStartTime());
+        response.put("testEndTime", exam.getEndTime());
+        response.put("testTime", duration.toMinutes()); //분으로 출력
+
+        return response;
     }
 
 

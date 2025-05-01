@@ -1,9 +1,13 @@
 package com.Capstone.EduX.examQuestion;
 
+import com.Capstone.EduX.examResult.ExamResult;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 public class ExamQuestionService {
@@ -83,4 +87,20 @@ public class ExamQuestionService {
 
         return result;
     }
+    //답안 제외 문제 불러오기
+    public List<Map<String, Object>> getQuestionsWithoutAnswer(Long examId) {
+        List<ExamQuestion> questions = examQuestionRepository.findByExamId(examId);
+
+        return questions.stream().map(q -> {
+            Map<String, Object> map = new HashMap<>();
+            map.put("id", q.getId());
+            map.put("number", q.getNumber());
+            map.put("question", q.getQuestion());
+            map.put("distractor", q.getDistractor()); // 옵션 리스트
+            map.put("type", q.getType());
+            map.put("questionScore", q.getQuestionScore());
+            return map; // 정답(answer)는 포함 ❌
+        }).collect(Collectors.toList());
+    }
+
 }

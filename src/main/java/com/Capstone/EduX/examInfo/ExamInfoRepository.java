@@ -7,9 +7,12 @@ import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface ExamInfoRepository extends JpaRepository<ExamInfo, Long> {
+
+    Optional<ExamInfo> findById(Long id); // 시험 ID로 조회
 
     @Query("""
         SELECT e
