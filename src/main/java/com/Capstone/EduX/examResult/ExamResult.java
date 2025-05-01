@@ -33,20 +33,20 @@ public class ExamResult {
         this.examInfo = examInfo;
     }
 
-    public Long getUserId() {
-        return userId;
-    }
-
-    public void setUserId(Long userId) {
-        this.userId = userId;
-    }
-
     public String getExamQuestionId() {
         return examQuestionId;
     }
 
     public void setExamQuestionId(String examQuestionId) {
         this.examQuestionId = examQuestionId;
+    }
+
+    public Long getUserId() {
+        return userId;
+    }
+
+    public void setUserId(Long userId) {
+        this.userId = userId;
     }
 
     public String getUserAnswer() {

@@ -1,6 +1,5 @@
 package com.Capstone.EduX.StudentClassroom;
 
-
 import com.Capstone.EduX.student.Student;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
