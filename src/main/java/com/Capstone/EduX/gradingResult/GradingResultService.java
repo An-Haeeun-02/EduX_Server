@@ -57,13 +57,18 @@ class GradingResultService {
     }
 
     public void gradeWithScore(String examQuestionId, Long examResultId, int inputScore) {
+        // 문제 정보 조회 (최대 점수 확인용)
         ExamQuestion question = examQuestionService.findById(examQuestionId);
         int maxScore = question.getQuestionScore();
-        int score = Math.max(0, Math.min(inputScore, maxScore));
+        int score = Math.max(0, Math.min(inputScore, maxScore)); // 최대 점수 제한
 
-        GradingResult gr = gradingResultRepository.findByExamResultId(examResultId)
-                .stream().filter(g -> g.getExamQuestionId().equals(examQuestionId))
-                .findFirst().orElse(new GradingResult(examQuestionId, examResultId, 0));
+        // examResultId + examQuestionId 조합으로 중복 여부 확인
+        Optional<GradingResult> existingGr = gradingResultRepository
+                .findByExamResultIdAndExamQuestionId(examResultId, examQuestionId);
+
+        GradingResult gr = existingGr.orElse(
+                new GradingResult(examQuestionId, examResultId, 0)
+        );
 
         gr.setScorePerQuestion(score);
         gradingResultRepository.save(gr);
@@ -160,33 +165,40 @@ class GradingResultService {
     }
 
     public void autoGradeForStudent(String name, String studentNumber, Long examId) {
+        // 학생 정보 조회
         Student student = studentRepository.findByNameAndStudentNumber(name, Long.parseLong(studentNumber))
                 .orElseThrow(() -> new RuntimeException("학생을 찾을 수 없습니다."));
 
+        // 해당 학생이 본 시험의 모든 응답 조회
         List<ExamResult> results = examResultRepository.findByUserIdAndExamInfoId(student.getId(), examId);
 
         for (ExamResult result : results) {
             ExamQuestion question = examQuestionService.findById(result.getExamQuestionId());
 
+            // 객관식일 경우 자동 채점
             if ("객관식".equals(question.getType())) {
                 int score = result.getUserAnswer().equals(question.getAnswer())
                         ? question.getQuestionScore()
                         : 0;
 
-                GradingResult gr = gradingResultRepository.findByExamResultId(result.getId())
-                        .stream().filter(g -> g.getExamQuestionId().equals(result.getExamQuestionId()))
-                        .findFirst()
-                        .orElse(new GradingResult(result.getExamQuestionId(), result.getId(), 0));
+                // 정확한 examResultId + examQuestionId 조합으로 중복 여부 확인
+                Optional<GradingResult> existingGr = gradingResultRepository
+                        .findByExamResultIdAndExamQuestionId(result.getId(), result.getExamQuestionId());
+
+                GradingResult gr = existingGr.orElse(
+                        new GradingResult(result.getExamQuestionId(), result.getId(), 0)
+                );
 
                 gr.setScorePerQuestion(score);
                 gradingResultRepository.save(gr);
             }
         }
 
-        // 전체 채점 완료되면 Score 업데이트
+        // 모든 문제 채점 완료 시 총점 계산
         if (!results.isEmpty() && isAllGraded(results.get(0).getId())) {
             ExamResult firstExamResult = results.get(0);
 
+            // 총점이 없으면 새로 생성
             scoreRepository.findByStudentIdAndExamInfoId(student.getId(), examId)
                     .orElseGet(() -> {
                         Score newScore = new Score();
@@ -196,9 +208,11 @@ class GradingResultService {
                         return scoreRepository.save(newScore);
                     });
 
+            // 총점 계산 및 저장
             updateTotalScore(firstExamResult.getId());
         }
     }
+
 
     public Integer getTotalScore(String name, String studentNumber, Long examId) {
         Student student = studentRepository.findByNameAndStudentNumber(name, Long.parseLong(studentNumber))
