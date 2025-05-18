@@ -8,6 +8,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface StudentClassroomRepository extends JpaRepository<StudentClassroom, Long> {
@@ -41,5 +42,9 @@ public interface StudentClassroomRepository extends JpaRepository<StudentClassro
       AND sc.isConnected = true
 """)
     List<Object[]> findStudentsWithExamInfoByClassroomId(@Param("classroomId") Long classroomId);
+
+    //**학번(student.studentNumber) + 강의실ID(classroom.id)로StudentClassroom 매핑을 찾아옴.
+    Optional<StudentClassroom>
+    findByStudent_StudentNumberAndClassroom_Id(Long studentNumber, Long classroomId);
 
 }

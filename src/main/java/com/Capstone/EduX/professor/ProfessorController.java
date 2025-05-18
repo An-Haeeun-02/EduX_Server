@@ -5,8 +5,8 @@ import jakarta.servlet.http.HttpSession;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.util.Map;
+import java.util.Optional;
 
-@CrossOrigin(origins = "http://localhost:5173")
 @RestController
 @RequestMapping("/api/professors")
 public class ProfessorController {
@@ -72,4 +72,15 @@ public class ProfessorController {
         session.invalidate();
         return ResponseEntity.ok("로그아웃 되었습니다.");
     }
+
+    @GetMapping("/find-id")
+    public ResponseEntity<?> findId(@RequestParam String name, @RequestParam String email) {
+        Optional<Professor> professorOpt = professorRepository.findByNameAndEmail(name, email);
+        if (professorOpt.isPresent()) {
+            return ResponseEntity.ok(professorOpt.get().getUsername()); // 아이디 반환
+        } else {
+            return ResponseEntity.status(404).body("일치하는 계정이 없습니다.");
+        }
+    }
+
 }
