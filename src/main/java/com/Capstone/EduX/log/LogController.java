@@ -4,6 +4,7 @@ import com.Capstone.EduX.Classroom.Classroom;
 import com.Capstone.EduX.StudentClassroom.StudentClassroom;
 import com.Capstone.EduX.examInfo.ExamInfo;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import lombok.extern.slf4j.Slf4j;
 
@@ -100,5 +101,21 @@ public class LogController {
                 .toList();
     }
 
+    /**
+     * @param name 학생 이름 (옵션)
+     * @param studentNumber 학번
+     * @param examId 시험 ID (ExamInfo의 PK)
+     * @return 해당 학생의 시험제출 로그 시간(시:분) 목록
+     * 학번 + 시험 ID 로 해당 학생의 시험제출시간 조회
+     */
+    @GetMapping("/submission-times")
+    public ResponseEntity<List<String>> getSubmissionTimes(
+            @RequestParam(required = false) String name,
+            @RequestParam Long studentNumber,
+            @RequestParam Long examId) {
+
+        List<String> times = logService.getSubmissionTimes(name, studentNumber, examId);
+        return ResponseEntity.ok(times);
+    }
 
 }

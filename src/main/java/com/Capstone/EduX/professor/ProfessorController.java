@@ -4,9 +4,11 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import java.util.Map;
 
-@CrossOrigin(origins = "http://localhost:5173")
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
+
 @RestController
 @RequestMapping("/api/professors")
 public class ProfessorController {
@@ -39,23 +41,37 @@ public class ProfessorController {
 
     // 로그인
     @PostMapping("/login")
-    public ResponseEntity<String> login(@RequestBody Map<String, String> loginData, HttpServletRequest request) {
+    public ResponseEntity<?> login(@RequestBody Map<String, String> loginData, HttpServletRequest request) {
         String username = loginData.get("username");
         String password = loginData.get("password");
 
         boolean success = professorService.login(username, password);
 
         if (success) {
-            // 기존 세션 무효화 후 새 세션 생성
+            Professor professor = professorService.findByUsername(username);
+            if (professor == null) {
+                return ResponseEntity.status(404).body("해당 교수 정보 없음");
+            }
+
+            // 세션 처리
             request.getSession().invalidate();
             HttpSession session = request.getSession(true);
             session.setAttribute("professorUsername", username);
             session.setMaxInactiveInterval(1800); // 30분 유지
-            return ResponseEntity.ok("로그인 성공");
+
+            // ✅ 교수 정보 JSON으로 응답
+            Map<String, Object> result = new HashMap<>();
+            result.put("id", professor.getId());
+            result.put("name", professor.getName());
+            result.put("email", professor.getEmail());
+            result.put("department", professor.getDepartment());
+
+            return ResponseEntity.ok(result);
         } else {
             return ResponseEntity.status(401).body("아이디 또는 비밀번호가 잘못되었습니다.");
         }
     }
+
 
     // 로그인 여부 확인
     @GetMapping("/login-check")
@@ -72,4 +88,46 @@ public class ProfessorController {
         session.invalidate();
         return ResponseEntity.ok("로그아웃 되었습니다.");
     }
+
+    @GetMapping("/find-id")
+    public ResponseEntity<?> findId(@RequestParam String name, @RequestParam String email) {
+        Optional<Professor> professorOpt = professorRepository.findByNameAndEmail(name, email);
+        if (professorOpt.isPresent()) {
+            return ResponseEntity.ok(professorOpt.get().getUsername()); // 아이디 반환
+        } else {
+            return ResponseEntity.status(404).body("일치하는 계정이 없습니다.");
+        }
+    }
+
+    @GetMapping("/verify-password-reset")
+    public ResponseEntity<?> verifyPasswordReset(
+            @RequestParam String username,
+            @RequestParam String email) {
+
+        boolean exists = professorRepository.existsByUsernameAndEmail(username, email);
+
+        if (exists) {
+            return ResponseEntity.ok("인증 성공");
+        } else {
+            return ResponseEntity.status(404).body("일치하는 정보가 없습니다.");
+        }
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<?> resetPassword(@RequestBody Map<String, String> payload) {
+        String username = payload.get("username");
+        String newPassword = payload.get("newPassword");
+
+        Optional<Professor> profOpt = professorRepository.findByUsername(username);
+        if (profOpt.isPresent()) {
+            Professor prof = profOpt.get();
+            prof.setPassword(newPassword); // 실제 서비스에서는 비밀번호 해싱 필요
+            professorRepository.save(prof);
+            return ResponseEntity.ok("비밀번호가 성공적으로 변경되었습니다.");
+        } else {
+            return ResponseEntity.status(404).body("계정을 찾을 수 없습니다.");
+        }
+    }
+
+
 }

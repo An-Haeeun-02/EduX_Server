@@ -42,6 +42,9 @@ import java.util.Map;
                 Map<String, Object> map = new HashMap<>();
                 map.put("id", c.getId());
                 map.put("className", c.getClassName());
+                map.put("section",   c.getSection());   // ← 추가
+                map.put("time",      c.getTime());
+                map.put("accessCode", c.getAccessCode());
                 return map;
             }).toList();
 
@@ -93,11 +96,10 @@ import java.util.Map;
         studentClassroomRepository.save(sc);
 
         // 5. className 전달
-        Map<String, String> result = new HashMap<>();
+        Map<String, Object> result = new HashMap<>();
+        result.put("id",classroom.getId());
         result.put("className", classroom.getClassName());
         return ResponseEntity.ok(result);
     }
-
-
 }
 
