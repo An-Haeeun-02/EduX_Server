@@ -1,7 +1,11 @@
 package com.Capstone.EduX.Classroom;
 
+import com.Capstone.EduX.StudentClassroom.StudentClassroom;
 import com.Capstone.EduX.professor.Professor;
 import jakarta.persistence.*;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "classroom")
@@ -16,6 +20,13 @@ public class Classroom {
 
     @ManyToOne
     private Professor professor;
+
+    @OneToMany(
+            mappedBy = "classroom",
+            cascade = CascadeType.ALL,
+            orphanRemoval = true
+    )
+    private List<StudentClassroom> studentClassrooms = new ArrayList<>();
 
     public Long getId() {
         return id;
