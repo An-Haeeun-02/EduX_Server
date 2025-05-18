@@ -83,4 +83,20 @@ public class ProfessorController {
         }
     }
 
+    @GetMapping("/verify-password-reset")
+    public ResponseEntity<?> verifyPasswordReset(
+            @RequestParam String username,
+            @RequestParam String email) {
+
+        boolean exists = professorRepository.existsByUsernameAndEmail(username, email);
+
+        if (exists) {
+            return ResponseEntity.ok("인증 성공");
+        } else {
+            return ResponseEntity.status(404).body("일치하는 정보가 없습니다.");
+        }
+    }
+
+
+
 }
