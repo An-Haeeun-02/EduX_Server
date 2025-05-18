@@ -13,4 +13,4 @@ spring:
 
   data:
     mongodb:
-      uri:  mongodb+srv://jeonhy1018:root@edux.rawuyuk.mongodb.net/EduX?retryWrites=true&w=majority&appName=eduX
+      uri:
