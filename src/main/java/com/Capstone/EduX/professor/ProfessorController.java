@@ -4,6 +4,8 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
@@ -39,23 +41,37 @@ public class ProfessorController {
 
     // 로그인
     @PostMapping("/login")
-    public ResponseEntity<String> login(@RequestBody Map<String, String> loginData, HttpServletRequest request) {
+    public ResponseEntity<?> login(@RequestBody Map<String, String> loginData, HttpServletRequest request) {
         String username = loginData.get("username");
         String password = loginData.get("password");
 
         boolean success = professorService.login(username, password);
 
         if (success) {
-            // 기존 세션 무효화 후 새 세션 생성
+            Professor professor = professorService.findByUsername(username);
+            if (professor == null) {
+                return ResponseEntity.status(404).body("해당 교수 정보 없음");
+            }
+
+            // 세션 처리
             request.getSession().invalidate();
             HttpSession session = request.getSession(true);
             session.setAttribute("professorUsername", username);
             session.setMaxInactiveInterval(1800); // 30분 유지
-            return ResponseEntity.ok("로그인 성공");
+
+            // ✅ 교수 정보 JSON으로 응답
+            Map<String, Object> result = new HashMap<>();
+            result.put("id", professor.getId());
+            result.put("name", professor.getName());
+            result.put("email", professor.getEmail());
+            result.put("department", professor.getDepartment());
+
+            return ResponseEntity.ok(result);
         } else {
             return ResponseEntity.status(401).body("아이디 또는 비밀번호가 잘못되었습니다.");
         }
     }
+
 
     // 로그인 여부 확인
     @GetMapping("/login-check")

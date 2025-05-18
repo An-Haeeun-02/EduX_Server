@@ -30,4 +30,9 @@ public class ProfessorService {
         Professor professor = optionalProfessor.get();
         return professor.getPassword().equals(password);
     }
+
+    public Professor findByUsername(String username) {
+        return professorRepository.findByUsername(username)
+                .orElse(null);
+    }
 }
