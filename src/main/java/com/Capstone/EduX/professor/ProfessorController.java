@@ -97,6 +97,21 @@ public class ProfessorController {
         }
     }
 
+    @PostMapping("/reset-password")
+    public ResponseEntity<?> resetPassword(@RequestBody Map<String, String> payload) {
+        String username = payload.get("username");
+        String newPassword = payload.get("newPassword");
+
+        Optional<Professor> profOpt = professorRepository.findByUsername(username);
+        if (profOpt.isPresent()) {
+            Professor prof = profOpt.get();
+            prof.setPassword(newPassword); // 실제 서비스에서는 비밀번호 해싱 필요
+            professorRepository.save(prof);
+            return ResponseEntity.ok("비밀번호가 성공적으로 변경되었습니다.");
+        } else {
+            return ResponseEntity.status(404).body("계정을 찾을 수 없습니다.");
+        }
+    }
 
 
 }
