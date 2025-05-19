@@ -8,6 +8,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface StudentClassroomRepository extends JpaRepository<StudentClassroom, Long> {
@@ -42,4 +43,5 @@ public interface StudentClassroomRepository extends JpaRepository<StudentClassro
 """)
     List<Object[]> findStudentsWithExamInfoByClassroomId(@Param("classroomId") Long classroomId);
 
+    Optional<StudentClassroom> findByStudentIdAndClassroomId(Long studentId, Long classroomId);
 }

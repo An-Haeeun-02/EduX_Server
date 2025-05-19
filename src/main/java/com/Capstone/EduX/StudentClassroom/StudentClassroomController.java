@@ -74,7 +74,8 @@ import java.util.Map;
         }
 
         // 2. 학생 찾기
-        Student student = studentRepository.findByStudentId(studentId);
+        Student student = studentRepository.findByStudentId(studentId)
+                .orElse(null);
         if (student == null) {
             return ResponseEntity.status(404).body("학생을 찾을 수 없습니다.");
         }

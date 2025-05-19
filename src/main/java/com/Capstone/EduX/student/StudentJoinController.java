@@ -83,7 +83,8 @@ import java.util.Map;
         //학생 정보 가져오기
         @GetMapping("/{studentId}")
         public ResponseEntity<?> getStudentInfo(@PathVariable String studentId) {
-            Student student = studentRepository.findByStudentId(studentId);
+            Student student = studentRepository.findByStudentId(studentId)
+                    .orElse(null);
 
             if (student == null) {
                 return ResponseEntity.status(404).body("학생을 찾을 수 없습니다.");

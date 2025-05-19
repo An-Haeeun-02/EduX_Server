@@ -45,7 +45,8 @@ public class StudentClassroomService {
         }
 
         // 2. 학생 찾기
-        Student student = studentRepository.findByStudentId(studentId);
+        Student student = studentRepository.findByStudentId(studentId)
+                .orElse(null);
         if (student == null) {
             throw new NoSuchElementException("학생을 찾을 수 없습니다.");
         }
@@ -84,7 +85,8 @@ public class StudentClassroomService {
     // 강의실에서 학생 제거(강퇴)
     public void removeStudentFromClassroom(String studentId, Long classroomId) {
         // 학생 조회
-        Student student = studentRepository.findByStudentId(studentId);
+        Student student = studentRepository.findByStudentId(studentId)
+                .orElse(null);
         if (student == null) {
             throw new NoSuchElementException("학생을 찾을 수 없습니다.");
         }
