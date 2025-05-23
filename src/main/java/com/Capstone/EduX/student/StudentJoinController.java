@@ -106,7 +106,45 @@ import java.util.Optional;
         result.put("phoneNumber", student.getEmail()); // 실제 전화번호 아니라 이메일이라면 여긴 그대로
 
         return ResponseEntity.ok(result);
-
     }
+
+    // 아이디 찾기
+    @GetMapping("/find-id")
+    public ResponseEntity<?> findId(@RequestParam String name, @RequestParam String email) {
+        Optional<Student> studentOpt = studentRepository.findByNameAndEmail(name, email);
+        if (studentOpt.isPresent()) {
+            return ResponseEntity.ok(studentOpt.get().getStudentId());
+        } else {
+            return ResponseEntity.status(404).body("일치하는 계정이 없습니다.");
+        }
+    }
+
+    // 비밀번호 재설정 전 본인 확인
+    @GetMapping("/verify-password-reset")
+    public ResponseEntity<?> verifyPasswordReset(@RequestParam String studentId, @RequestParam String email) {
+        boolean exists = studentRepository.existsByStudentIdAndEmail(studentId, email);
+        if (exists) {
+            return ResponseEntity.ok("인증 성공");
+        } else {
+            return ResponseEntity.status(404).body("일치하는 정보가 없습니다.");
+        }
+    }
+
+    // 비밀번호 재설정
+    @PostMapping("/reset-password")
+    public ResponseEntity<?> resetPassword(@RequestBody Map<String, String> payload) {
+        String studentId = payload.get("studentId");
+        String newPassword = payload.get("newPassword");
+
+        Student student = studentRepository.findByStudentId(studentId);
+        if (student != null) {
+            student.setPassword(newPassword); // 실제 운영 환경에서는 비밀번호 해싱이 필요합니다
+            studentRepository.save(student);
+            return ResponseEntity.ok("비밀번호가 성공적으로 변경되었습니다.");
+        } else {
+            return ResponseEntity.status(404).body("계정을 찾을 수 없습니다.");
+        }
+    }
+
 }
 
