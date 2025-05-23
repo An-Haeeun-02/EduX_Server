@@ -102,6 +102,33 @@ public class ExamInfoController {
         }
     }
 
+    //시험 삭제(정보만)
+    @DeleteMapping("/delete/{examId}")
+    public ResponseEntity<?> deleteExam(@PathVariable Long examId) {
+        try {
+            service.deleteExam(examId);
+            return ResponseEntity.ok("삭제 완료");
+        } catch (NoSuchElementException e) {
+            return ResponseEntity.status(404).body("해당 시험이 존재하지 않습니다.");
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("삭제 실패: " + e.getMessage());
+        }
+    }
+
+    //시험 삭제(정보, 문제, 범위)
+    @DeleteMapping("/delete/all/{examId}")
+    public ResponseEntity<?> deleteExamAll(@PathVariable Long examId) {
+        try {
+            service.deleteExamCascade(examId);
+            return ResponseEntity.ok("시험 및 관련 데이터 삭제 완료");
+        } catch (NoSuchElementException e) {
+            return ResponseEntity.status(404).body("시험 없음");
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("삭제 실패: " + e.getMessage());
+        }
+    }
+
+
 
 
 }
