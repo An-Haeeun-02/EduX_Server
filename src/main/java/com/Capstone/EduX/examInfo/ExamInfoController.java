@@ -88,5 +88,20 @@ public class ExamInfoController {
     }
 
 
+    //시험 목록 조회
+    @GetMapping("/examList")
+    public ResponseEntity<?> getExamTitles(
+            @RequestParam String studentId,
+            @RequestParam Long classroomId
+    ) {
+        try {
+            List<Map<String, Object>> result = examInfoService.getExamTitles(studentId, classroomId);
+            return ResponseEntity.ok(result);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+
 
 }

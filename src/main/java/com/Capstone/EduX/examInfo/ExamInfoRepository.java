@@ -30,5 +30,6 @@ public interface ExamInfoRepository extends JpaRepository<ExamInfo, Long> {
 """)
     List<ExamInfo> findAllExamsByClassroomIdAndProfessorId(@Param("classroomId") Long classroomId, @Param("professorId") Long professorId);
 
+    List<ExamInfo> findByClassroomId(Long classroomId);
 
 }

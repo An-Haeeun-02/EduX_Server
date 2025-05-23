@@ -2,25 +2,32 @@ package com.Capstone.EduX.examInfo;
 
 import com.Capstone.EduX.Classroom.Classroom;
 import com.Capstone.EduX.Classroom.ClassroomRepository;
+import com.Capstone.EduX.StudentClassroom.StudentClassroom;
+import com.Capstone.EduX.StudentClassroom.StudentClassroomRepository;
 import com.Capstone.EduX.examInfo.dto.ExamCreateRequest;
+import com.Capstone.EduX.student.Student;
+import com.Capstone.EduX.student.StudentRepository;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.NoSuchElementException;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 public class ExamInfoService {
 
     private final ExamInfoRepository examInfoRepository;
     private final ClassroomRepository classroomRepository;
+    private final StudentRepository studentRepository;
 
-    public ExamInfoService(ExamInfoRepository examInfoRepository,ClassroomRepository classroomRepository) {
+    private final StudentClassroomRepository studentClassroomRepository;
+
+    public ExamInfoService(StudentRepository studentRepository, ExamInfoRepository examInfoRepository, ClassroomRepository classroomRepository, StudentClassroomRepository studentClassroomRepository) {
+        this.studentRepository = studentRepository;
         this.examInfoRepository = examInfoRepository;
         this.classroomRepository = classroomRepository;
+        this.studentClassroomRepository = studentClassroomRepository;
     }
 
 //    public List<ExamInfo> getActiveExams(Long classroomId) {
@@ -49,15 +56,45 @@ public class ExamInfoService {
                 .orElseThrow(() -> new NoSuchElementException("해당 시험이 존재하지 않습니다."));
 
         // 수정 가능한 필드들 업데이트
-        exam.setTitle((String) req.get("title"));
-        exam.setNotice((String) req.get("notice"));
-        exam.setQuestionCount((Integer) req.get("questionCount"));
+        // 제목
+        if (req.containsKey("title") && req.get("title") != null) {
+            exam.setTitle((String) req.get("title"));
+        }
 
-        exam.setStartTime(LocalDateTime.parse((String) req.get("startTime")));
-        exam.setEndTime(LocalDateTime.parse((String) req.get("endTime")));
-        exam.setTestStartTime(LocalDateTime.parse((String) req.get("testStartTime")));
-        exam.setTestEndTime(LocalDateTime.parse((String) req.get("testEndTime")));
+        // 공지
+        if (req.containsKey("notice") && req.get("notice") != null) {
+            exam.setNotice((String) req.get("notice"));
+        }
 
+        // 문항 수
+        if (req.containsKey("questionCount") && req.get("questionCount") != null) {
+            Object rawCount = req.get("questionCount");
+            if (rawCount instanceof Number) {
+                exam.setQuestionCount(((Number) rawCount).intValue());
+            } else {
+                exam.setQuestionCount(Integer.parseInt(rawCount.toString()));
+            }
+        }
+
+        // 시작 시간
+        if (req.containsKey("startTime") && req.get("startTime") != null && !req.get("startTime").toString().isBlank()) {
+            exam.setStartTime(LocalDateTime.parse(req.get("startTime").toString()));
+        }
+
+        // 종료 시간
+        if (req.containsKey("endTime") && req.get("endTime") != null && !req.get("endTime").toString().isBlank()) {
+            exam.setEndTime(LocalDateTime.parse(req.get("endTime").toString()));
+        }
+
+        // 시험 시작 시간
+        if (req.containsKey("testStartTime") && req.get("testStartTime") != null && !req.get("testStartTime").toString().isBlank()) {
+            exam.setTestStartTime(LocalDateTime.parse(req.get("testStartTime").toString()));
+        }
+
+        // 시험 종료 시간
+        if (req.containsKey("testEndTime") && req.get("testEndTime") != null && !req.get("testEndTime").toString().isBlank()) {
+            exam.setTestEndTime(LocalDateTime.parse(req.get("testEndTime").toString()));
+        }
         examInfoRepository.save(exam);
 
         return exam.getTitle();
@@ -118,6 +155,41 @@ public class ExamInfoService {
 
         return response;
     }
+
+    public List<Map<String, Object>> getExamTitles(String studentId, Long classroomId) {
+        // 1. 학번으로 Student 조회
+        Student student = studentRepository.findByStudentId(studentId);
+        if (student == null) {
+            throw new NoSuchElementException("학생과 강의실을 찾을 수 없습니다.");
+        }
+
+        Long studentPK = student.getId(); // 내부 식별자
+
+        // 2. student_id와 classroom_id로 StudentClassroom 확인
+        Optional<StudentClassroom> optional = studentClassroomRepository
+                .findByStudentIdAndClassroomId(studentPK, classroomId);
+
+        if (optional.isEmpty()) {
+            throw new IllegalArgumentException("강의실에 없는 학생입니다");
+        }
+
+        // 3. classroomId로 시험 정보 조회
+        List<ExamInfo> examList = examInfoRepository.findByClassroomId(classroomId);
+
+
+        // 4. id와 title만 추출하여 반환
+        return examList.stream()
+                .map(exam -> {
+                    Map<String, Object> map = new HashMap<>();
+                    map.put("id", exam.getId());
+                    map.put("title", exam.getTitle());
+                    return map;
+                })
+                .collect(Collectors.toList());
+    }
+
+
+
 
 
 }
