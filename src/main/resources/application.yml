@@ -1,8 +1,8 @@
 spring:
   datasource:
-    url: jdbc:mysql://localhost:3306/EduX
-    username: "root"    # ✅ 여기에 실제 MySQL 사용자 이름 입력
-    password: "root"  # ✅ 여기에 실제 비밀번호 입력
+    url: jdbc:mysql://edux-database.cryeqy80mdeb.ap-northeast-2.rds.amazonaws.com:3306/EduX
+    username: EduX_admin
+    password: edux2025
     driver-class-name: com.mysql.cj.jdbc.Driver
 
   jpa:
@@ -13,4 +13,4 @@ spring:
 
   data:
     mongodb:
-      uri:
+      uri: mongodb+srv://ahe0531:gJhrhxg1uFsaeEFO@eduxcluster.dfm05pc.mongodb.net/EduXMongoDB?appName=EduxCluster
