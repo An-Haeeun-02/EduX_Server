@@ -7,5 +7,5 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface ExamRangeRepository extends JpaRepository<ExamRange, Long> {
     void deleteByExamInfo(ExamInfo examInfo);
-
+    void deleteByExamInfo_Id(Long examId);
 }

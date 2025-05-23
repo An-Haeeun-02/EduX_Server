@@ -5,9 +5,12 @@ import com.Capstone.EduX.Classroom.ClassroomRepository;
 import com.Capstone.EduX.StudentClassroom.StudentClassroom;
 import com.Capstone.EduX.StudentClassroom.StudentClassroomRepository;
 import com.Capstone.EduX.examInfo.dto.ExamCreateRequest;
+import com.Capstone.EduX.examQuestion.ExamQuestionRepository;
+import com.Capstone.EduX.examRange.ExamRangeRepository;
 import com.Capstone.EduX.student.Student;
 import com.Capstone.EduX.student.StudentRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -20,13 +23,17 @@ public class ExamInfoService {
     private final ExamInfoRepository examInfoRepository;
     private final ClassroomRepository classroomRepository;
     private final StudentRepository studentRepository;
+    private final ExamRangeRepository examRangeRepository;
+    private final ExamQuestionRepository examQuestionRepository;
 
     private final StudentClassroomRepository studentClassroomRepository;
 
-    public ExamInfoService(StudentRepository studentRepository, ExamInfoRepository examInfoRepository, ClassroomRepository classroomRepository, StudentClassroomRepository studentClassroomRepository) {
+    public ExamInfoService(StudentRepository studentRepository, ExamInfoRepository examInfoRepository, ClassroomRepository classroomRepository, ExamRangeRepository examRangeRepository, ExamQuestionRepository examQuestionRepository, StudentClassroomRepository studentClassroomRepository) {
         this.studentRepository = studentRepository;
         this.examInfoRepository = examInfoRepository;
         this.classroomRepository = classroomRepository;
+        this.examRangeRepository = examRangeRepository;
+        this.examQuestionRepository = examQuestionRepository;
         this.studentClassroomRepository = studentClassroomRepository;
     }
 
@@ -187,6 +194,47 @@ public class ExamInfoService {
                 })
                 .collect(Collectors.toList());
     }
+
+    public void deleteExam(Long examId) {
+        if (!examInfoRepository.existsById(examId)) {
+            throw new NoSuchElementException("해당 시험이 존재하지 않습니다.");
+        }
+        examInfoRepository.deleteById(examId);
+    }
+
+    @Transactional
+    public void deleteExamCascade(Long examId) {
+        // 1. 시험 범위 삭제 (MySQL)
+        try {
+            examRangeRepository.deleteByExamInfo_Id(examId);
+            System.out.println("시험 범위 삭제 완료");
+        } catch (Exception e) {
+            System.out.println("시험 범위 삭제 실패 또는 없음: " + e.getMessage());
+        }
+
+        // 2. 시험 문제 삭제 (MongoDB)
+        try {
+            examQuestionRepository.deleteByExamId(examId);
+            System.out.println("시험 문제 삭제 완료");
+        } catch (Exception e) {
+            System.out.println("시험 문제 삭제 실패 또는 없음: " + e.getMessage());
+        }
+
+        // 3. 시험 정보 삭제 (MySQL)
+        try {
+            if (examInfoRepository.existsById(examId)) {
+                examInfoRepository.deleteById(examId);
+                System.out.println("시험 정보 삭제 완료");
+            } else {
+                System.out.println("시험 정보 없음 (삭제 건너뜀)");
+            }
+        } catch (Exception e) {
+            System.out.println("시험 정보 삭제 실패: " + e.getMessage());
+        }
+    }
+
+
+
 
 
 
