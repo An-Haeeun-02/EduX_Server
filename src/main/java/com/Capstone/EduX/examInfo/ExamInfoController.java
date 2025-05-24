@@ -49,6 +49,7 @@ public class ExamInfoController {
         return ResponseEntity.ok(exams);
     }
 
+    //시험 정보 업데이트
     @PutMapping("/update")
     public ResponseEntity<?> updateExam(@RequestBody Map<String, Object> request) {
         try {
