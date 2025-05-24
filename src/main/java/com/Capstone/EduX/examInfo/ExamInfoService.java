@@ -233,11 +233,10 @@ public class ExamInfoService {
         }
     }
 
-
-
-
-
-
+    public ExamInfo getExamById(Long id) {
+        return examInfoRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("시험을 찾을 수 없습니다: id=" + id));
+    }
 
 
 }

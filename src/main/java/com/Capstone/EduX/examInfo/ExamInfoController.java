@@ -49,6 +49,7 @@ public class ExamInfoController {
         return ResponseEntity.ok(exams);
     }
 
+    //시험 정보 업데이트
     @PutMapping("/update")
     public ResponseEntity<?> updateExam(@RequestBody Map<String, Object> request) {
         try {
@@ -128,7 +129,23 @@ public class ExamInfoController {
         }
     }
 
+    //저장된 시험 정보 불러오기
+    @GetMapping("/{id}")
+    public ResponseEntity<Map<String, Object>> getExamById(@PathVariable Long id) {
+        ExamInfo exam = examInfoService.getExamById(id);
 
+        // 🔸 외래키를 제외하고 필요한 정보만 Map으로 수동 구성
+        Map<String, Object> response = new HashMap<>();
+        response.put("id", exam.getId());
+        response.put("title", exam.getTitle());
+        response.put("startTime", exam.getStartTime());
+        response.put("endTime", exam.getEndTime());
+        response.put("testStartTime", exam.getTestStartTime());
+        response.put("testEndTime", exam.getTestEndTime());
+        response.put("notice", exam.getNotice());
+        response.put("questionCount", exam.getQuestionCount());
 
+        return ResponseEntity.ok(response);
+    }
 
 }

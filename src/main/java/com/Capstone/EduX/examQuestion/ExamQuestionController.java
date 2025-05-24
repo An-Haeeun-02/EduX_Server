@@ -11,7 +11,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 @RestController
-@RequestMapping("/exam-questions")
+@RequestMapping("/api/exam-questions")
 public class ExamQuestionController {
 
     private final ExamQuestionService examQuestionService;
@@ -62,6 +62,7 @@ public class ExamQuestionController {
         return Map.of("id", saved.getId()); // key: id, value: 실제 ID
     }
 
+    //시험 문제 조회(답안 제외)
     @GetMapping("/exam/{examId}") // /api/exam-question/exam/1
     public ResponseEntity<?> getQuestions(@PathVariable Long examId) {
         List<Map<String, Object>> questions = examQuestionService.getQuestionsWithoutAnswer(examId);
@@ -72,6 +73,19 @@ public class ExamQuestionController {
 
         return ResponseEntity.ok(questions); // 정답 없이 문제만 보냄
     }
+
+    //시험 문제 조회(전체)
+    @GetMapping("/exam/all/{examId}")
+    public ResponseEntity<?> getQuestionsWithAnswer(@PathVariable Long examId) {
+        List<ExamQuestion> questions = examQuestionService.findByExamId(examId);
+
+        if (questions.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("해당 시험의 문제가 없습니다.");
+        }
+
+        return ResponseEntity.ok(questions); // ✅ answer 포함됨
+    }
+
 
 
     @GetMapping // 전체 문제 리스트 가져오기
