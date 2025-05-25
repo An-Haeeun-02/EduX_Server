@@ -1,5 +1,6 @@
 package com.Capstone.EduX.examQuestion;
 
+import com.Capstone.EduX.examQuestion.dto.ExamQuestionDto;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -39,51 +40,43 @@ public class ExamQuestionController {
 
     //다중 저장
     @PostMapping("/autosave/bulk")
-    public Map<String, List<Map<String, Object>>> autoSaveBulk(@RequestBody List<ExamQuestion> questions) {
+    public Map<String, List<Map<String,Object>>> autoSaveBulk(
+            @RequestBody List<ExamQuestion> questions) {
         List<ExamQuestion> savedList = examQuestionService.autoSaveBulk(questions);
 
-        List<Map<String, Object>> results = savedList.stream()
+        List<Map<String,Object>> results = savedList.stream()
                 .map(q -> {
-                    Map<String, Object> map = new HashMap<>();
-                    map.put("id", q.getId());
-                    map.put("number", q.getNumber());
-                    return map;
+                    Map<String,Object> m = new HashMap<>();
+                    m.put("id", q.getId());
+                    m.put("number", q.getNumber());
+                    return m;
                 })
                 .collect(Collectors.toList());
 
         return Collections.singletonMap("results", results);
     }
 
-
     //단일저장, id 중복 대응
     @PostMapping("/autosave")
     public Map<String, String> autoSaveOne(@RequestBody ExamQuestion question) {
         ExamQuestion saved = examQuestionService.autoSaveOne(question);
-        return Map.of("id", saved.getId()); // key: id, value: 실제 ID
+        return Map.of("id", saved.getId());
     }
 
     //시험 문제 조회(답안 제외)
-    @GetMapping("/exam/{examId}") // /api/exam-question/exam/1
-    public ResponseEntity<?> getQuestions(@PathVariable Long examId) {
+    @GetMapping("/exam/{examId}")
+    public ResponseEntity<List<Map<String, Object>>> getQuestions(@PathVariable Long examId) {
         List<Map<String, Object>> questions = examQuestionService.getQuestionsWithoutAnswer(examId);
 
-        if (questions.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("해당 시험의 문제가 없습니다.");
-        }
-
-        return ResponseEntity.ok(questions); // 정답 없이 문제만 보냄
+        // 항상 200 OK, 빈 리스트일 수도 있음
+        return ResponseEntity.ok(questions);
     }
 
     //시험 문제 조회(전체)
     @GetMapping("/exam/all/{examId}")
-    public ResponseEntity<?> getQuestionsWithAnswer(@PathVariable Long examId) {
+    public ResponseEntity<List<ExamQuestion>> getQuestionsWithAnswer(@PathVariable Long examId) {
         List<ExamQuestion> questions = examQuestionService.findByExamId(examId);
-
-        if (questions.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("해당 시험의 문제가 없습니다.");
-        }
-
-        return ResponseEntity.ok(questions); // ✅ answer 포함됨
+        return ResponseEntity.ok(questions);
     }
 
     @GetMapping // 전체 문제 리스트 가져오기

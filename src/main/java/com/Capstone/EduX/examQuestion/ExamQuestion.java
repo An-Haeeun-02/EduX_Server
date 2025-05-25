@@ -17,9 +17,11 @@ public class ExamQuestion {
     private Integer number;
     private String question;
     private List<String> distractor;
-    private String answer;
+    private Object answer;
     private String type;
     private Integer questionScore;
+
+    public ExamQuestion() {}
 
     public ExamQuestion(Long examId, Integer number, String question,
                         List<String> distractor, String answer, String type, Integer questionScore) {
@@ -72,13 +74,9 @@ public class ExamQuestion {
         this.question = question;
     }
 
-    public String getAnswer() {
-        return answer;
-    }
+    public Object getAnswer() { return answer; }
 
-    public void setAnswer(String answer) {
-        this.answer = answer;
-    }
+    public void   setAnswer(Object answer) { this.answer = answer; }
 
     public String getType() {
         return type;
