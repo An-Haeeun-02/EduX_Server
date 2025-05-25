@@ -19,6 +19,9 @@ public class ExamInfo {
     private String notice;
     private Integer questionCount;
 
+    @Column(name = "access_mode", nullable = false)
+    private String accessMode = "deny";
+
 
     @ManyToOne
     private Classroom classroom;
@@ -96,4 +99,7 @@ public class ExamInfo {
     public void setClassroom(Classroom classroom) {
         this.classroom = classroom;
     }
+
+    public String getAccessMode() { return accessMode; }
+    public void setAccessMode(String accessMode) { this.accessMode = accessMode; }
 }
