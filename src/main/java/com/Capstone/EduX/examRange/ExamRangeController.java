@@ -1,10 +1,7 @@
 package com.Capstone.EduX.examRange;
 
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
@@ -39,4 +36,12 @@ public class ExamRangeController {
             return ResponseEntity.badRequest().body("저장 실패: " + e.getMessage());
         }
     }
+
+    // 허용범위 조회
+    @GetMapping("/{examId}")
+    public ResponseEntity<List<String>> getRanges(@PathVariable Long examId) {
+        List<String> ranges = service.getRangeDetails(examId);
+        return ResponseEntity.ok(ranges);
+    }
+
 }

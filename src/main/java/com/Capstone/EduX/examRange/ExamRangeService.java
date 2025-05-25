@@ -42,4 +42,19 @@ public class ExamRangeService {
 
         repository.saveAll(ranges);
     }
+
+    @Transactional(readOnly = true)
+    public List<String> getRangeDetails(Long examId) {
+        // 1) ExamInfo 조회
+        ExamInfo examInfo = examInfoRepository.findById(examId)
+                .orElseThrow(() -> new NoSuchElementException("시험을 찾을 수 없습니다."));
+
+        // 2) ExamRange 엔티티 조회
+        List<ExamRange> ranges = repository.findByExamInfo(examInfo);
+
+        // 3) 엔티티에서 실제 문자열(detail)만 뽑아서 반환
+        return ranges.stream()
+                .map(ExamRange::getRangeDetail)
+                .toList();
+    }
 }
