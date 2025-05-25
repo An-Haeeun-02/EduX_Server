@@ -17,7 +17,9 @@ public class ExamInfo {
     private LocalDateTime testStartTime;
     private LocalDateTime testEndTime;
     private String notice;
-    private Integer questionCount;
+
+    @Column(name = "question_count", nullable = false)
+    private Integer questionCount = 0;
 
     @Column(name = "access_mode", nullable = false)
     private String accessMode = "deny";

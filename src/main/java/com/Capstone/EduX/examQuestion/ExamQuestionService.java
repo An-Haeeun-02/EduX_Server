@@ -1,6 +1,8 @@
 package com.Capstone.EduX.examQuestion;
 
+import com.Capstone.EduX.examInfo.ExamInfoService;
 import com.Capstone.EduX.examResult.ExamResult;
+import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -13,9 +15,12 @@ import java.util.stream.Collectors;
 public class ExamQuestionService {
 
     private final ExamQuestionRepository examQuestionRepository;
+    private final ExamInfoService examInfoService;
 
-    public ExamQuestionService(ExamQuestionRepository examQuestionRepository) {
+    public ExamQuestionService(ExamQuestionRepository examQuestionRepository
+    , ExamInfoService examInfoService) {
         this.examQuestionRepository = examQuestionRepository;
+        this.examInfoService  = examInfoService;
     }
 
     public ExamQuestion save(ExamQuestion question) {
@@ -40,7 +45,9 @@ public class ExamQuestionService {
     }
 
     //단일저장시 사용
+    @Transactional
     public ExamQuestion autoSaveOne(ExamQuestion q) {
+        ExamQuestion saved;
         if (q.getId() != null && examQuestionRepository.existsById(q.getId())) {
             // 이미 저장된 문제 → 수정
             ExamQuestion existing = examQuestionRepository.findById(q.getId()).get();
@@ -53,13 +60,20 @@ public class ExamQuestionService {
             existing.setNumber(q.getNumber());
             existing.setExamId(q.getExamId());
 
-            return examQuestionRepository.save(existing); // 수정 후 반환
+            saved = examQuestionRepository.save(existing);
         } else {
-            // 새 문제 → 새로 저장
-            return examQuestionRepository.save(q);
+            // 새 문제 저장
+            saved = examQuestionRepository.save(q);
         }
+
+        // **문제 개수 갱신** (현재 해당 examId로 저장된 총 개수)
+        long count = examQuestionRepository.countByExamId(saved.getExamId());
+        examInfoService.updateQuestionCount(saved.getExamId(), (int) count);
+
+        return saved;
     }
 
+    @Transactional
     //다중 저장 시 사용(저장된 문제와 아닌 문제 구분)
     public List<ExamQuestion> autoSaveBulk(List<ExamQuestion> questions) {
         List<ExamQuestion> result = new ArrayList<>();
@@ -80,9 +94,14 @@ public class ExamQuestionService {
                 // 수정된 문제를 저장하고 결과 리스트에 추가
                 result.add(examQuestionRepository.save(existing));
             } else {
-                // ② 새 문제 → insert
                 result.add(examQuestionRepository.save(q));
             }
+        }
+
+        // **문제 개수 갱신** (bulk로 저장된 총 개수)
+        if (!result.isEmpty()) {
+            Long examId = result.get(0).getExamId();
+            examInfoService.updateQuestionCount(examId, result.size());
         }
 
         return result;

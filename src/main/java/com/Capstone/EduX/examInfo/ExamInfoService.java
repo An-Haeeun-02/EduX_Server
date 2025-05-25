@@ -238,5 +238,12 @@ public class ExamInfoService {
                 .orElseThrow(() -> new RuntimeException("시험을 찾을 수 없습니다: id=" + id));
     }
 
+    @Transactional
+    public void updateQuestionCount(Long examId, int count) {
+        ExamInfo exam = examInfoRepository.findById(examId)
+                .orElseThrow(() -> new NoSuchElementException("해당 시험이 없습니다: " + examId));
+        exam.setQuestionCount(count);
+        examInfoRepository.save(exam);
+    }
 
 }
