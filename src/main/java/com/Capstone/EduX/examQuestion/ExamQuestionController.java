@@ -58,10 +58,18 @@ public class ExamQuestionController {
 
     //단일저장, id 중복 대응
     @PostMapping("/autosave")
-    public Map<String, String> autoSaveOne(@RequestBody ExamQuestion question) {
-        ExamQuestion saved = examQuestionService.autoSaveOne(question);
-        return Map.of("id", saved.getId());
+    public ResponseEntity<?> autoSaveOne(@RequestBody ExamQuestion q) {
+        try {
+            ExamQuestion saved = examQuestionService.autoSaveOne(q);
+            return ResponseEntity.ok(Map.of("id", saved.getId()));
+        } catch (Exception e) {
+            e.printStackTrace();  // 콘솔에 스택트레이스 출력
+            return ResponseEntity
+                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", e.getMessage()));  // 에러 메시지를 JSON으로 클라이언트에 전달
+        }
     }
+
 
     //시험 문제 조회(답안 제외)
     @GetMapping("/exam/{examId}")

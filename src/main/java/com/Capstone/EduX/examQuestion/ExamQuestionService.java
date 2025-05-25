@@ -74,15 +74,14 @@ public class ExamQuestionService {
     }
 
     @Transactional
-    //다중 저장 시 사용(저장된 문제와 아닌 문제 구분)
     public List<ExamQuestion> autoSaveBulk(List<ExamQuestion> questions) {
         List<ExamQuestion> result = new ArrayList<>();
 
+        // 1) 반복 돌면서 기존 문제는 수정, 신규 문제는 저장
         for (ExamQuestion q : questions) {
             if (q.getId() != null && examQuestionRepository.existsById(q.getId())) {
-                // ① 이미 저장된 문제 → 수정 (덮어쓰기)
+                // 수정 로직 (기존 q를 꺼내서 덮어쓰기)
                 ExamQuestion existing = examQuestionRepository.findById(q.getId()).get();
-
                 existing.setQuestion(q.getQuestion());
                 existing.setAnswer(q.getAnswer());
                 existing.setDistractor(q.getDistractor());
@@ -90,18 +89,18 @@ public class ExamQuestionService {
                 existing.setQuestionScore(q.getQuestionScore());
                 existing.setNumber(q.getNumber());
                 existing.setExamId(q.getExamId());
-
-                // 수정된 문제를 저장하고 결과 리스트에 추가
                 result.add(examQuestionRepository.save(existing));
             } else {
+                // 신규 저장
                 result.add(examQuestionRepository.save(q));
             }
         }
 
-        // **문제 개수 갱신** (bulk로 저장된 총 개수)
+        // 2) bulk 저장 후, 실제 DB에 남은 총 개수로 카운트 갱신
         if (!result.isEmpty()) {
             Long examId = result.get(0).getExamId();
-            examInfoService.updateQuestionCount(examId, result.size());
+            long total = examQuestionRepository.countByExamId(examId);
+            examInfoService.updateQuestionCount(examId, (int) total);
         }
 
         return result;
@@ -118,11 +117,22 @@ public class ExamQuestionService {
             map.put("distractor", q.getDistractor()); // 옵션 리스트
             map.put("type", q.getType());
             map.put("questionScore", q.getQuestionScore());
-            return map; // 정답(answer)는 포함 ❌
+            return map; // 정답(answer)는 포함 X
         }).collect(Collectors.toList());
     }
+    @Transactional
     public void deleteById(String id) {
-        examQuestionRepository.deleteById(id);
-    }
+        // 1) 삭제 전, 해당 문제의 examId를 꺼내 놓고
+        ExamQuestion q = examQuestionRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("삭제할 문제 없음: " + id));
+        Long examId = q.getExamId();
 
+        // 2) 실제 삭제
+        examQuestionRepository.deleteById(id);
+
+        // 3) 삭제 후, DB에 남은 개수로 카운트 갱신
+        long total = examQuestionRepository.countByExamId(examId);
+        examInfoService.updateQuestionCount(examId, (int) total);
+    }
 }
+
