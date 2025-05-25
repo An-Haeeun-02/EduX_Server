@@ -121,5 +121,8 @@ public class ExamQuestionService {
             return map; // 정답(answer)는 포함 ❌
         }).collect(Collectors.toList());
     }
+    public void deleteById(String id) {
+        examQuestionRepository.deleteById(id);
+    }
 
 }

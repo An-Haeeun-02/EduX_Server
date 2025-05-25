@@ -86,12 +86,16 @@ public class ExamQuestionController {
         return ResponseEntity.ok(questions); // ✅ answer 포함됨
     }
 
-
-
     @GetMapping // 전체 문제 리스트 가져오기
     public List<ExamQuestion> getAll() {
         return examQuestionService.findAll();
     }
 
+    // 단일 문제 삭제
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteQuestion(@PathVariable String id) {
+        examQuestionService.deleteById(id);
+        return ResponseEntity.ok().build();
+    }
 
 }
