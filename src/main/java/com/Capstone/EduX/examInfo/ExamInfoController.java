@@ -144,6 +144,8 @@ public class ExamInfoController {
         response.put("testEndTime", exam.getTestEndTime());
         response.put("notice", exam.getNotice());
         response.put("questionCount", exam.getQuestionCount());
+        response.put("mode", exam.getAccessMode());
+        response.put("duration",     exam.getDuration());
 
         return ResponseEntity.ok(response);
     }
