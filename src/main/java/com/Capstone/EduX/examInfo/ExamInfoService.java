@@ -48,6 +48,7 @@ public class ExamInfoService {
         ExamInfo exam = new ExamInfo();
         exam.setTitle(request.getTitle());
         exam.setClassroom(classroom);
+        exam.setDuration(request.getDuration());
 
         return examInfoRepository.save(exam);
     }
@@ -101,6 +102,11 @@ public class ExamInfoService {
         // 시험 종료 시간
         if (req.containsKey("testEndTime") && req.get("testEndTime") != null && !req.get("testEndTime").toString().isBlank()) {
             exam.setTestEndTime(LocalDateTime.parse(req.get("testEndTime").toString()));
+        }
+
+        if (req.containsKey("duration") && req.get("duration") != null) {
+            Number raw = (Number) req.get("duration");
+            exam.setDuration(raw.intValue());
         }
         examInfoRepository.save(exam);
 

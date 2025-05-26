@@ -24,10 +24,13 @@ public class ExamInfo {
     @Column(name = "access_mode", nullable = false)
     private String accessMode = "deny";
 
+    /** 전체 시험 제한 시간(분) */
+    @Column(name = "duration", nullable = false)
+    private Integer duration = 60;
+
 
     @ManyToOne
     private Classroom classroom;
-
 
 
     public Long getId() {
@@ -104,4 +107,12 @@ public class ExamInfo {
 
     public String getAccessMode() { return accessMode; }
     public void setAccessMode(String accessMode) { this.accessMode = accessMode; }
+
+    public Integer getDuration() {
+        return duration;
+    }
+
+    public void setDuration(Integer duration) {
+        this.duration = duration;
+    }
 }
