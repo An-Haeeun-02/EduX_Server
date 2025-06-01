@@ -118,4 +118,26 @@ public class LogController {
         return ResponseEntity.ok(times);
     }
 
+    //남은 시간
+    @GetMapping("/remaining-time")
+    public ResponseEntity<Long> getRemainingTime(
+            @RequestParam Long studentId,
+            @RequestParam Long examInfoId
+    ) {
+        long remaining = logService.calculateRemainingTime(studentId, examInfoId);
+        return ResponseEntity.ok(remaining);
+    }
+
+    //시험 상태
+    @GetMapping("/exam-status")
+    public ResponseEntity<String> getExamStatus(
+            @RequestParam Long studentId,
+            @RequestParam Long examInfoId
+    ) {
+        LogService.ExamStatus status = logService.determineExamStatus(studentId, examInfoId);
+        return ResponseEntity.ok(status.name());
+    }
+
+
+
 }

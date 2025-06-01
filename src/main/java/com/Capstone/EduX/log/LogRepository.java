@@ -23,4 +23,7 @@ public interface LogRepository extends JpaRepository<Log, Long> {
 
     // 학생별 + 시험별 로그 조회
     List<Log> findByStudentClassroom_IdAndExamInfo_Id(Long studentClassroomId, Long examInfoId);
+
+    //시험 일시정지 등
+    List<Log> findByStudentIdAndExamInfoIdOrderByTimestampAsc(Long studentId, Long examInfoId);
 }

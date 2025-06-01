@@ -18,13 +18,11 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.Comparator;
-import java.util.List;
-import java.util.NoSuchElementException;
+import java.util.*;
 import java.util.stream.Collectors;
-import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -243,5 +241,107 @@ public class LogService {
                         .format(TIME_FORMATTER))
                 .collect(Collectors.toList());
     }
+
+    public long calculateRemainingTime(Long studentId, Long examInfoId) {
+        Student student = studentRepository.findById(studentId)
+                .orElseThrow(() -> new IllegalArgumentException("해당 학생이 존재하지 않습니다."));
+        ExamInfo examInfo = examInfoRepository.findById(examInfoId)
+                .orElseThrow(() -> new IllegalArgumentException("해당 시험 정보가 존재하지 않습니다."));
+
+        int durationInSeconds = examInfo.getDuration() * 60;
+
+        List<Log> logs = logRepository.findByStudentIdAndExamInfoIdOrderByTimestampAsc(studentId, examInfoId);
+
+        LocalDateTime startTime = null;
+        long pausedDuration = 0;
+        LocalDateTime lastExitTime = null;
+
+        for (Log log : logs) {
+            if (log.getTimestamp() == null) continue;
+
+            String type = log.getLogType();
+            LocalDateTime time = LocalDateTime.parse(log.getTimestamp());
+
+            if (type.equals("IN_EXAM") && startTime == null) {
+                startTime = time;
+            } else if (type.equals("EXAM_EXIT")) {
+                lastExitTime = time;
+            } else if (type.equals("IN_EXAM") && lastExitTime != null) {
+                pausedDuration += Duration.between(lastExitTime, time).getSeconds();
+                lastExitTime = null;
+            }
+        }
+
+        // 처음 입장 시
+        if (startTime == null) {
+            startTime = LocalDateTime.now();
+
+            Log newLog = new Log();
+            newLog.setStudent(student);
+            newLog.setExamInfo(examInfo);
+            newLog.setLogType("IN_EXAM");
+            newLog.setTimestamp(startTime.toString());
+            logRepository.save(newLog);
+
+            return durationInSeconds;
+        }
+
+        long elapsed = Duration.between(startTime, LocalDateTime.now()).getSeconds();
+        long effective = elapsed - pausedDuration;
+        return Math.max(0, durationInSeconds - effective);
+    }
+
+    public enum ExamStatus {
+        BEFORE,
+        IN_PROGRESS,
+        FINISHED
+    }
+
+
+    public ExamStatus determineExamStatus(Long studentId, Long examInfoId) {
+        List<Log> logs = logRepository.findByStudentIdAndExamInfoIdOrderByTimestampAsc(studentId, examInfoId);
+
+        boolean hasStarted = false;
+        boolean hasSubmitted = false;
+
+        LocalDateTime startTime = null;
+        long pausedDuration = 0;
+        LocalDateTime lastExit = null;
+
+        for (Log log : logs) {
+            String type = log.getLogType();
+            LocalDateTime time = LocalDateTime.parse(log.getTimestamp());
+
+            if (type.equals("IN_EXAM") && startTime == null) {
+                startTime = time;
+                hasStarted = true;
+            } else if (type.equals("EXAM_EXIT")) {
+                lastExit = time;
+            } else if (type.equals("IN_EXAM") && lastExit != null) {
+                pausedDuration += Duration.between(lastExit, time).getSeconds();
+                lastExit = null;
+            } else if (type.equals("SAVE_EXAM")) {
+                hasSubmitted = true;
+            }
+        }
+
+        if (!hasStarted) return ExamStatus.BEFORE;
+        if (hasSubmitted) return ExamStatus.FINISHED;
+
+        // 남은 시간 확인
+        ExamInfo exam = examInfoRepository.findById(examInfoId)
+                .orElseThrow(() -> new IllegalArgumentException("시험 없음"));
+
+        int duration = exam.getDuration() * 60;
+        long elapsed = Duration.between(startTime, LocalDateTime.now()).getSeconds();
+        long effective = elapsed - pausedDuration;
+
+        if (effective >= duration) return ExamStatus.FINISHED;
+
+        return ExamStatus.IN_PROGRESS;
+    }
+
+
+
 
 }
