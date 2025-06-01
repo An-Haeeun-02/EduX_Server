@@ -320,7 +320,7 @@ public class LogService {
             } else if (type.equals("IN_EXAM") && lastExit != null) {
                 pausedDuration += Duration.between(lastExit, time).getSeconds();
                 lastExit = null;
-            } else if (type.equals("SAVE_EXAM")) {
+            } else if ("SAVE_EXAM".equalsIgnoreCase(type.trim())) {
                 hasSubmitted = true;
             }
         }
