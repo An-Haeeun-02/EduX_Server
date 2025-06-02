@@ -4,6 +4,7 @@ package com.Capstone.EduX.log;
 import com.Capstone.EduX.Classroom.Classroom;
 import com.Capstone.EduX.StudentClassroom.StudentClassroom;
 import com.Capstone.EduX.examInfo.ExamInfo;
+import com.Capstone.EduX.student.Student;
 import jakarta.persistence.*;
 
 @Entity
@@ -15,6 +16,9 @@ public class Log {
 
     @ManyToOne
     private StudentClassroom studentClassroom; //학생 목록
+
+    @ManyToOne
+    private Student student;
 
     @ManyToOne
     private Classroom classroom; //강의실
@@ -82,5 +86,13 @@ public class Log {
 
     public void setDetail(String detail) {
         this.detail = detail;
+    }
+
+    public Student getStudent() {
+        return student;
+    }
+
+    public void setStudent(Student student) {
+        this.student = student;
     }
 }

@@ -84,24 +84,30 @@ public class ExamInfoService {
             }
         }
 
-        // 시작 시간
-        if (req.containsKey("startTime") && req.get("startTime") != null && !req.get("startTime").toString().isBlank()) {
-            exam.setStartTime(LocalDateTime.parse(req.get("startTime").toString()));
-        }
-
-        // 종료 시간
-        if (req.containsKey("endTime") && req.get("endTime") != null && !req.get("endTime").toString().isBlank()) {
-            exam.setEndTime(LocalDateTime.parse(req.get("endTime").toString()));
-        }
-
         // 시험 시작 시간
         if (req.containsKey("testStartTime") && req.get("testStartTime") != null && !req.get("testStartTime").toString().isBlank()) {
-            exam.setTestStartTime(LocalDateTime.parse(req.get("testStartTime").toString()));
+            LocalDateTime testStart = LocalDateTime.parse(req.get("testStartTime").toString());
+            exam.setTestStartTime(testStart);
+
+            // 자동 계산: 공개 시작 시간 = 시험 시작 시간 - 30분
+            exam.setStartTime(testStart.minusMinutes(30));
         }
 
         // 시험 종료 시간
         if (req.containsKey("testEndTime") && req.get("testEndTime") != null && !req.get("testEndTime").toString().isBlank()) {
-            exam.setTestEndTime(LocalDateTime.parse(req.get("testEndTime").toString()));
+            LocalDateTime testEnd = LocalDateTime.parse(req.get("testEndTime").toString());
+            exam.setTestEndTime(testEnd);
+
+            // 자동 계산: 공개 종료 시간 = 시험 종료 시간
+            exam.setEndTime(testEnd);
+        }
+
+        // 수동 입력된 startTime/endTime이 있다면 별도로 덮어쓰기
+        if (req.containsKey("startTime") && req.get("startTime") != null && !req.get("startTime").toString().isBlank()) {
+            exam.setStartTime(LocalDateTime.parse(req.get("startTime").toString()));
+        }
+        if (req.containsKey("endTime") && req.get("endTime") != null && !req.get("endTime").toString().isBlank()) {
+            exam.setEndTime(LocalDateTime.parse(req.get("endTime").toString()));
         }
 
         if (req.containsKey("duration") && req.get("duration") != null) {
