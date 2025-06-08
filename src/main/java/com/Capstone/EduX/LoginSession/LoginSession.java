@@ -10,7 +10,6 @@ import java.time.LocalDateTime;
 public class LoginSession {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private String sessionId; // 세션 ID 자체를 PK로 사용
 
     @OneToOne
