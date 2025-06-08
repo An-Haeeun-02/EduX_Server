@@ -14,6 +14,7 @@ public class Student {
     private Long studentNumber;
     private String name;
     private String email;
+    private Boolean active;
 
     // 생성자
     public Student(String userId, String password, String name, Long studentNumber, String email) {
@@ -75,5 +76,13 @@ public class Student {
 
     public void setEmail(String email) {
         this.email = email;
+    }
+
+    public Boolean getActive() {
+        return active;
+    }
+
+    public void setActive(Boolean active) {
+        this.active = active;
     }
 }

@@ -5,6 +5,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/professor/classrooms/{classroomId}/students/{studentNumber}/logs")
@@ -34,7 +35,6 @@ public class LogController_professor {
     }
 
     //접속 상태 조회
-
     @GetMapping("/connection")
     public ResponseEntity<String> getConnectionTime(
             @PathVariable Long classroomId,
@@ -43,6 +43,8 @@ public class LogController_professor {
         String result = logService.getConnectionTime(studentNumber, classroomId);
         return ResponseEntity.ok(result);
     }
+
+
 
 }
 

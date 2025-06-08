@@ -25,13 +25,17 @@ public class StudentClassroomController_professor {
 
         List<Map<String, Object>> result = students.stream().map(s -> {
             Map<String, Object> map = new HashMap<>();
-            map.put("studentId", s.getStudentId());
+            map.put("studentId", s.getId()); // DB PK
+            map.put("studentNumber", s.getStudentNumber()); // 학번
             map.put("name", s.getName());
+            map.put("email", s.getEmail());
             return map;
         }).toList();
 
         return ResponseEntity.ok(result);
     }
+
+
 
     // 시험에만 속한 학생 조회
     @GetMapping("/exam/{examId}/students")

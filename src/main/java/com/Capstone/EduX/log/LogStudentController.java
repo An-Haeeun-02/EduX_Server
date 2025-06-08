@@ -140,6 +140,22 @@ public class LogStudentController {
         return ResponseEntity.ok("결과 확인 로그 저장 완료");
     }
 
+    @PostMapping("/exit-exam")
+    public ResponseEntity<String> logExitExam(@RequestBody Map<String, String> request) {
+        logService.saveLog(
+                request.get("studentId"),
+                LocalDateTime.parse(request.get("timestamp")),
+                LogType.EXAM_EXIT,
+                Long.parseLong(request.get("classroomId")),
+                Long.parseLong(request.get("examId")),
+                "시험 도중 페이지 이탈"
+        );
+        return ResponseEntity.ok("이탈 로그 저장 완료");
+    }
+
+
+
+
 
 
 

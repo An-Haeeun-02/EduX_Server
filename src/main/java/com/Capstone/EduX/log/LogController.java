@@ -3,11 +3,13 @@ package com.Capstone.EduX.log;
 import com.Capstone.EduX.Classroom.Classroom;
 import com.Capstone.EduX.StudentClassroom.StudentClassroom;
 import com.Capstone.EduX.examInfo.ExamInfo;
+import com.Capstone.EduX.student.Student;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import lombok.extern.slf4j.Slf4j;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -117,5 +119,63 @@ public class LogController {
         List<String> times = logService.getSubmissionTimes(name, studentNumber, examId);
         return ResponseEntity.ok(times);
     }
+
+    //남은 시간
+    @GetMapping("/remaining-time")
+    public ResponseEntity<Long> getRemainingTime(
+            @RequestParam Long studentId,
+            @RequestParam Long examInfoId
+    ) {
+        long remaining = logService.calculateRemainingTime(studentId, examInfoId);
+        return ResponseEntity.ok(remaining);
+    }
+
+    //시험 상태
+    @GetMapping("/exam-status")
+    public ResponseEntity<String> getExamStatus(
+            @RequestParam Long studentId,
+            @RequestParam Long examInfoId,
+            @RequestParam Long classroomId
+    ) {
+        LogService.ExamStatus status = logService.determineExamStatus(studentId, examInfoId, classroomId);
+        return ResponseEntity.ok(status.name());
+    }
+
+    //로그용 시험 상태
+    @GetMapping("/in-exam-status")
+    public ResponseEntity<List<Map<String, Object>>> getStudentExamStatus(
+            @RequestParam Long examId,
+            @RequestParam Long classroomId
+    ) {
+        List<Map<String, Object>> statusList = logService.getStudentExamStatus(examId, classroomId);
+        return ResponseEntity.ok(statusList);
+    }
+
+    @PostMapping("/test")
+    public ResponseEntity<String> insertTestLog(@RequestBody Map<String, String> request) {
+        logService.saveLog(
+                request.get("studentId"),
+                LocalDateTime.now(),
+                LogType.CHEAT, // ✅ 실시간 알림용
+                Long.parseLong(request.get("classroomId")),
+                Long.parseLong(request.get("examId")),
+                "임시 테스트 로그"
+        );
+
+        return ResponseEntity.ok("테스트 로그 저장 완료");
+    }
+
+    @GetMapping("/student-logs")
+    public ResponseEntity<List<Map<String, Object>>> getStudentLogs(
+            @RequestParam Long examId,
+            @RequestParam Long classroomId,
+            @RequestParam Long studentId // ✅ PK 사용
+    ) {
+        List<Map<String, Object>> logs = logService.getStudentLogs(examId, classroomId, studentId);
+        return ResponseEntity.ok(logs);
+    }
+
+
+
 
 }

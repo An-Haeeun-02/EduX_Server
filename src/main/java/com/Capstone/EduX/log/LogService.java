@@ -13,18 +13,20 @@ import com.Capstone.EduX.examInfo.ExamInfoRepository;
 import com.Capstone.EduX.student.Student;
 import com.Capstone.EduX.student.StudentRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.stereotype.Service;
+import lombok.RequiredArgsConstructor;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.Comparator;
-import java.util.List;
-import java.util.NoSuchElementException;
+import java.util.*;
 import java.util.stream.Collectors;
-import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -36,6 +38,7 @@ public class LogService {
     private final ExamInfoRepository examInfoRepository;
     private final StudentClassroomRepository studentClassroomRepository;
     private final ClassroomRepository classroomRepository;
+    private final LogWebSocketService logWebSocketService;
 
     private static final DateTimeFormatter PARSER =
             DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
@@ -77,6 +80,7 @@ public class LogService {
         }
     }
 
+    //로그 저장용
     public void saveLog(String studentId,
                         LocalDateTime timestamp,
                         LogType logType,
@@ -90,7 +94,8 @@ public class LogService {
             throw new NoSuchElementException("학생 ID '" + studentId + "'를 찾을 수 없습니다.");
         }
 
-
+        // 선언 위치를 여기로 옮김
+        StudentClassroom studentClassroom = null;
 
         // 2. 로그 엔티티 생성
         Log log = new Log();
@@ -103,7 +108,7 @@ public class LogService {
             Classroom classroom = classroomRepository.findById(classroomId)
                     .orElseThrow(() -> new NotFoundException("강의실 ID '" + classroomId + "'를 찾을 수 없습니다."));
 
-            StudentClassroom studentClassroom = studentClassroomRepository
+            studentClassroom = studentClassroomRepository
                     .findByStudentIdAndClassroomId(student.getId(), classroomId)
                     .orElseThrow(() -> new NotFoundException("학생이 해당 강의실에 등록되어 있지 않습니다."));
 
@@ -118,7 +123,23 @@ public class LogService {
         }
 
         logRepository.save(log);
+
+        // ✅ WebSocket 메시지 전송 조건
+        if (List.of("IN_EXAM", "SAVE_EXAM", "EXAM_EXIT", "CHEAT").contains(log.getLogType()) && studentClassroom != null) {
+            Student scStudent = studentClassroom.getStudent();
+
+            Map<String, Object> message = new HashMap<>();
+            message.put("studentId", scStudent.getId());
+            message.put("studentNumber", scStudent.getStudentNumber());
+            message.put("name", scStudent.getName());
+            message.put("status", log.getLogType());
+            message.put("timestamp", timestamp.toString());
+            message.put("detail", log.getDetail());
+
+            logWebSocketService.sendExamLog(examInfoId, message);
+        }
     }
+
 
     /**
      * 교수 전용: 학번(studentNumber) + 강의실ID(classroomId) 로
@@ -243,5 +264,194 @@ public class LogService {
                         .format(TIME_FORMATTER))
                 .collect(Collectors.toList());
     }
+
+    public long calculateRemainingTime(Long studentId, Long examInfoId) {
+        Student student = studentRepository.findById(studentId)
+                .orElseThrow(() -> new IllegalArgumentException("해당 학생이 존재하지 않습니다."));
+        ExamInfo examInfo = examInfoRepository.findById(examInfoId)
+                .orElseThrow(() -> new IllegalArgumentException("해당 시험 정보가 존재하지 않습니다."));
+
+        int durationInSeconds = examInfo.getDuration() * 60;
+
+        List<Log> logs = logRepository.findByStudentIdAndExamInfoIdOrderByTimestampAsc(studentId, examInfoId);
+
+        LocalDateTime startTime = null;
+        long pausedDuration = 0;
+        LocalDateTime lastExitTime = null;
+
+        for (Log log : logs) {
+            if (log.getTimestamp() == null) continue;
+
+            String type = log.getLogType();
+            LocalDateTime time = LocalDateTime.parse(log.getTimestamp());
+
+            if (type.equals("IN_EXAM") && startTime == null) {
+                startTime = time;
+            } else if (type.equals("EXAM_EXIT")) {
+                lastExitTime = time;
+            } else if (type.equals("IN_EXAM") && lastExitTime != null) {
+                pausedDuration += Duration.between(lastExitTime, time).getSeconds();
+                lastExitTime = null;
+            }
+        }
+
+        // 처음 입장 시
+        if (startTime == null) {
+            startTime = LocalDateTime.now();
+
+            Log newLog = new Log();
+            newLog.setStudent(student);
+            newLog.setExamInfo(examInfo);
+            newLog.setLogType("IN_EXAM");
+            newLog.setTimestamp(startTime.toString());
+            logRepository.save(newLog);
+
+            return durationInSeconds;
+        }
+
+        long elapsed = Duration.between(startTime, LocalDateTime.now()).getSeconds();
+        long effective = elapsed - pausedDuration;
+        return Math.max(0, durationInSeconds - effective);
+    }
+
+    public enum ExamStatus {
+        BEFORE,
+        IN_PROGRESS,
+        FINISHED
+    }
+
+
+    public ExamStatus determineExamStatus(Long studentId, Long examInfoId, Long classroomId) {
+
+        // 1. student_classroom_id 조회
+        Student student = studentRepository.findByStudentId(String.valueOf(studentId));
+        if (student == null) {
+            throw new NoSuchElementException("해당 학생을 찾을 수 없습니다.");
+        }
+
+        StudentClassroom studentClassroom = studentClassroomRepository
+                .findByStudentIdAndClassroomId(student.getId(), classroomId)
+                .orElseThrow(() -> new NoSuchElementException("해당 강의실에 등록된 학생이 아닙니다."));
+
+        // 2. student_classroom_id 기준으로 로그 조회
+        List<Log> logs = logRepository.findByStudentClassroomIdOrderByTimestampAsc(studentClassroom.getId());
+
+        boolean hasStarted = false;
+        boolean hasSubmitted = false;
+
+        LocalDateTime startTime = null;
+        long pausedDuration = 0;
+        LocalDateTime lastExit = null;
+
+        // 3. IN_EXAM 로그 확인
+        boolean hasInExamLog = logs.stream()
+                .anyMatch(log -> "IN_EXAM".equalsIgnoreCase(log.getLogType()));
+
+        if (!hasInExamLog) {
+            this.saveLog(
+                    String.valueOf(studentId),
+                    LocalDateTime.now(),
+                    LogType.IN_EXAM,
+                    classroomId,
+                    examInfoId,
+                    "자동 생성된 시험 입장 로그"
+            );
+
+            return ExamStatus.BEFORE;
+        }
+
+        for (Log log : logs) {
+            String type = log.getLogType();
+            LocalDateTime time = LocalDateTime.parse(log.getTimestamp());
+
+            if (type.equals("IN_EXAM") && startTime == null) {
+                startTime = time;
+                hasStarted = true;
+            } else if (type.equals("EXAM_EXIT")) {
+                lastExit = time;
+            } else if (type.equals("IN_EXAM") && lastExit != null) {
+                pausedDuration += Duration.between(lastExit, time).getSeconds();
+                lastExit = null;
+            } else if ("SAVE_EXAM".equalsIgnoreCase(type.trim())) {
+                hasSubmitted = true;
+            }
+        }
+
+        if (!hasStarted) return ExamStatus.BEFORE;
+        if (hasSubmitted) return ExamStatus.FINISHED;
+
+        ExamInfo exam = examInfoRepository.findById(examInfoId)
+                .orElseThrow(() -> new IllegalArgumentException("시험 없음"));
+
+        int duration = exam.getDuration() * 60;
+        long elapsed = Duration.between(startTime, LocalDateTime.now()).getSeconds();
+        long effective = elapsed - pausedDuration;
+
+        if (effective >= duration) return ExamStatus.FINISHED;
+
+        return ExamStatus.IN_PROGRESS;
+    }
+
+
+    public List<Map<String, Object>> getStudentExamStatus(Long examId, Long classroomId) {
+        List<StudentClassroom> studentClassrooms = studentClassroomRepository.findByClassroomId(classroomId);
+        List<Map<String, Object>> result = new ArrayList<>();
+
+        for (StudentClassroom sc : studentClassrooms) {
+            Student student = sc.getStudent();
+
+            // 최근 상태 (IN_EXAM, SAVE_EXAM, EXAM_EXIT)
+            Log recentStatusLog = logRepository
+                    .findTopByStudentClassroomAndExamInfoIdAndLogTypeInOrderByTimestampDesc(
+                            sc, examId, List.of("IN_EXAM", "SAVE_EXAM", "EXAM_EXIT", "CHEAT")
+                    );
+
+            // 접속 시간 (IN_EXAM 로그 중 가장 최근)
+            Log inExamLog = logRepository
+                    .findTopByStudentClassroomAndExamInfoIdAndLogTypeOrderByTimestampDesc(
+                            sc, examId, "IN_EXAM"
+                    );
+
+            Map<String, Object> map = new HashMap<>();
+            map.put("studentId", student.getId()); // ✅ 여기에 추가
+            map.put("name", student.getName());
+            map.put("studentNumber", student.getStudentNumber());
+            map.put("status", recentStatusLog != null ? recentStatusLog.getLogType() : "NO");
+            map.put("enterTime", inExamLog != null ? inExamLog.getTimestamp() : "NO");
+
+            result.add(map);
+        }
+
+        return result;
+    }
+
+    public List<Map<String, Object>> getStudentLogs(Long examId, Long classroomId, Long studentId) {
+
+        // 🔍 Student 존재 여부 확인
+        Student student = studentRepository.findById(studentId)
+                .orElseThrow(() -> new NoSuchElementException("해당 ID의 학생이 존재하지 않습니다."));
+
+        // 🔍 StudentClassroom 조회
+        StudentClassroom sc = studentClassroomRepository
+                .findByStudentIdAndClassroomId(studentId, classroomId)
+                .orElseThrow(() -> new NoSuchElementException("학생 강의실 정보가 없습니다."));
+
+        // 🔍 Log 조회
+        List<Log> logs = logRepository.findByStudentClassroomIdAndExamInfoId(sc.getId(), examId);
+
+        // 📦 결과 포맷 변환
+        return logs.stream().map(log -> {
+            Map<String, Object> map = new HashMap<>();
+            map.put("logId", log.getId());
+            map.put("classroom_id", log.getClassroom().getId());
+            map.put("exam_info_id", log.getExamInfo().getId());
+            map.put("student_classroom_id", log.getStudentClassroom().getId());
+            map.put("status", log.getLogType());
+            map.put("timestamp", log.getTimestamp());
+            map.put("detail", log.getDetail());
+            return map;
+        }).collect(Collectors.toList());
+    }
+
 
 }
