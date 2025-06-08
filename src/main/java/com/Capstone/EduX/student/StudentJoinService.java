@@ -1,15 +1,22 @@
 package com.Capstone.EduX.student;
 
+import com.Capstone.EduX.LoginSession.LoginSession;
+import com.Capstone.EduX.LoginSession.LoginSessionRepository;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpSession;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.Optional;
 
 @Service
 public class StudentJoinService {
     private final StudentRepository studentRepository;
+    private final LoginSessionRepository loginSessionRepository;
 
-    public StudentJoinService(StudentRepository studentRepository) {
+    public StudentJoinService(StudentRepository studentRepository, LoginSessionRepository loginSessionRepository) {
         this.studentRepository = studentRepository;
+        this.loginSessionRepository = loginSessionRepository;
     }
 
     public void register(Student student) {
@@ -21,8 +28,6 @@ public class StudentJoinService {
             throw new IllegalArgumentException("이미 등록된 사용자 정보입니다.");
         }
 
-        // ⭐ active 상태 false로 초기화
-        student.setActive(false);
 
         // 저장
         studentRepository.save(student);
@@ -33,23 +38,32 @@ public class StudentJoinService {
     }
 
     //로그인 로직
-    public boolean login(String userId, String password) {
+    public String login(String userId, String password, String sessionId) {
         Optional<Student> optionalStudent = studentRepository.findBystudentId(userId);
-
         if (optionalStudent.isEmpty()) {
-            return false;
+            return "NO_USER";
         }
 
         Student student = optionalStudent.get();
-
-        if (student.getPassword().equals(password)) {
-            // ⭐ 로그인 성공 시 active를 true로 설정하고 저장
-            student.setActive(true);
-            studentRepository.save(student);
-            return true;
+        if (!student.getPassword().equals(password)) {
+            return "WRONG_PASSWORD";
         }
 
-        return student.getPassword().equals(password);
+        if (loginSessionRepository.findByStudent(student).isPresent()) {
+            return "ALREADY_LOGGED_IN";
+        }
+
+        // 로그인 성공
+        LoginSession loginSession = new LoginSession();
+        loginSession.setSessionId(sessionId);
+        loginSession.setStudent(student);
+        loginSession.setLoginTime(LocalDateTime.now());
+        loginSessionRepository.save(loginSession);
+
+        return "SUCCESS";
     }
+
+
+
 
 }
