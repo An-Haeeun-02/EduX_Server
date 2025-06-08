@@ -21,6 +21,9 @@ public class StudentJoinService {
             throw new IllegalArgumentException("이미 등록된 사용자 정보입니다.");
         }
 
+        // ⭐ active 상태 false로 초기화
+        student.setActive(false);
+
         // 저장
         studentRepository.save(student);
     }
@@ -38,6 +41,13 @@ public class StudentJoinService {
         }
 
         Student student = optionalStudent.get();
+
+        if (student.getPassword().equals(password)) {
+            // ⭐ 로그인 성공 시 active를 true로 설정하고 저장
+            student.setActive(true);
+            studentRepository.save(student);
+            return true;
+        }
 
         return student.getPassword().equals(password);
     }

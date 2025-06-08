@@ -85,9 +85,20 @@ import java.util.Optional;
     //로그아웃
     @PostMapping("/logout")
     public ResponseEntity<String> logout(HttpSession session) {
-        session.invalidate(); // ← 현재 로그인한 사용자의 세션 무효화 (로그아웃 처리)
+        String studentId = (String) session.getAttribute("studentId");
+
+        if (studentId != null) {
+            Student student = studentRepository.findByStudentId(studentId);
+            if (student != null) {
+                student.setActive(false); // ⭐ active를 false로 설정
+                studentRepository.save(student); // DB에 저장
+            }
+        }
+
+        session.invalidate(); // 세션 무효화 (로그아웃 처리)
         return ResponseEntity.ok("로그아웃 되었습니다.");
     }
+
 
     //학생 정보 가져오기
     @GetMapping("/{id}")
