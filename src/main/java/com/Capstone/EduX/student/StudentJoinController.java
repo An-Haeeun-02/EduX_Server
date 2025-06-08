@@ -1,5 +1,6 @@
 package com.Capstone.EduX.student;
 
+import com.Capstone.EduX.LoginSession.LoginSessionRepository;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.http.ResponseEntity;
@@ -16,10 +17,12 @@ import java.util.Optional;
 
     private final StudentJoinService studentJoinService;
     private final StudentRepository studentRepository;
+    private final LoginSessionRepository loginSessionRepository;
 
-    public StudentJoinController(StudentJoinService studentJoinService, StudentRepository studentRepository) {
+    public StudentJoinController(StudentJoinService studentJoinService, StudentRepository studentRepository, LoginSessionRepository loginSessionRepository) {
         this.studentJoinService = studentJoinService;
         this.studentRepository = studentRepository;
+        this.loginSessionRepository = loginSessionRepository;
     }
 
     //로그인 여부
@@ -53,51 +56,53 @@ import java.util.Optional;
 
     //로그인
     @PostMapping("/login")
-    public ResponseEntity<Map<String, Object>> login(@RequestBody Map<String, String> loginData, HttpServletRequest httpServletRequest) {
+    public ResponseEntity<Map<String, Object>> login(@RequestBody Map<String, String> loginData, HttpServletRequest request) {
         String studentId = loginData.get("studentId");
         String password = loginData.get("password");
 
-        boolean success = studentJoinService.login(studentId, password);
+        // 기존 세션 무효화 후 새로 생성
+        request.getSession().invalidate();
+        HttpSession session = request.getSession(true);
+        session.setAttribute("studentId", studentId);
+        session.setMaxInactiveInterval(1800); // 30분 유지
+
+        String sessionId = session.getId();
+
+        boolean success = studentJoinService.login(studentId, password, sessionId);
 
         if (success) {
-            // 로그인 성공 => 세션 생성
-
-            // 세션을 생성하기 전에 기존의 세션 파기
-            httpServletRequest.getSession().invalidate();
-            HttpSession session = httpServletRequest.getSession(true);  // Session이 없으면 생성
-            // 세션에 studentId를 넣어줌
-            session.setAttribute("studentId", studentId);
-            session.setMaxInactiveInterval(1800); // Session이 30분동안 유지
-
-            // 학생 정보 응답 추가
             Student student = studentRepository.findByStudentId(studentId);
             Map<String, Object> result = new HashMap<>();
-            result.put("id", student.getId());  // ✅ 프론트가 사용할 고유 ID
+            result.put("id", student.getId());
             result.put("studentId", student.getStudentId());
             result.put("name", student.getName());
-
             return ResponseEntity.ok(result);
         } else {
-            return ResponseEntity.status(401).build();
+            session.invalidate(); // 실패했으면 세션 다시 무효화
+            return ResponseEntity.status(401).body(Map.of("error", "로그인 실패 또는 중복 로그인"));
         }
     }
+
 
     //로그아웃
     @PostMapping("/logout")
     public ResponseEntity<String> logout(HttpSession session) {
         String studentId = (String) session.getAttribute("studentId");
+        String sessionId = session.getId();
 
         if (studentId != null) {
             Student student = studentRepository.findByStudentId(studentId);
             if (student != null) {
-                student.setActive(false); // ⭐ active를 false로 설정
-                studentRepository.save(student); // DB에 저장
+                studentRepository.save(student);
             }
         }
 
-        session.invalidate(); // 세션 무효화 (로그아웃 처리)
+        loginSessionRepository.deleteById(sessionId); // 더 간단히 삭제 가능
+        session.invalidate();
+
         return ResponseEntity.ok("로그아웃 되었습니다.");
     }
+
 
 
     //학생 정보 가져오기
