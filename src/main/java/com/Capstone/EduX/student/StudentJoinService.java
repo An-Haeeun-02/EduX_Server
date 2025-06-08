@@ -38,29 +38,31 @@ public class StudentJoinService {
     }
 
     //로그인 로직
-    public boolean login(String userId, String password, String sessionId) {
+    public String login(String userId, String password, String sessionId) {
         Optional<Student> optionalStudent = studentRepository.findBystudentId(userId);
-        if (optionalStudent.isEmpty()) return false;
-
-        Student student = optionalStudent.get();
-        if (!student.getPassword().equals(password)) return false;
-
-        // 중복 로그인 방지
-        if (loginSessionRepository.findByStudent(student).isPresent()) {
-            return false;
+        if (optionalStudent.isEmpty()) {
+            return "NO_USER";
         }
 
-        // 로그인 성공 → 세션 정보 저장
+        Student student = optionalStudent.get();
+        if (!student.getPassword().equals(password)) {
+            return "WRONG_PASSWORD";
+        }
+
+        if (loginSessionRepository.findByStudent(student).isPresent()) {
+            return "ALREADY_LOGGED_IN";
+        }
+
+        // 로그인 성공
         LoginSession loginSession = new LoginSession();
         loginSession.setSessionId(sessionId);
         loginSession.setStudent(student);
         loginSession.setLoginTime(LocalDateTime.now());
         loginSessionRepository.save(loginSession);
 
-        studentRepository.save(student);
-
-        return true;
+        return "SUCCESS";
     }
+
 
 
 

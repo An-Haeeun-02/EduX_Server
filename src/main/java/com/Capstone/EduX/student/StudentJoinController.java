@@ -60,28 +60,43 @@ import java.util.Optional;
         String studentId = loginData.get("studentId");
         String password = loginData.get("password");
 
-        // 기존 세션 무효화 후 새로 생성
         request.getSession().invalidate();
         HttpSession session = request.getSession(true);
         session.setAttribute("studentId", studentId);
-        session.setMaxInactiveInterval(1800); // 30분 유지
+        session.setMaxInactiveInterval(1800);
 
         String sessionId = session.getId();
 
-        boolean success = studentJoinService.login(studentId, password, sessionId);
+        String result = studentJoinService.login(studentId, password, sessionId);
 
-        if (success) {
-            Student student = studentRepository.findByStudentId(studentId);
-            Map<String, Object> result = new HashMap<>();
-            result.put("id", student.getId());
-            result.put("studentId", student.getStudentId());
-            result.put("name", student.getName());
-            return ResponseEntity.ok(result);
-        } else {
-            session.invalidate(); // 실패했으면 세션 다시 무효화
-            return ResponseEntity.status(401).body(Map.of("error", "로그인 실패 또는 중복 로그인"));
+        switch (result) {
+            case "SUCCESS" -> {
+                Student student = studentRepository.findByStudentId(studentId);
+                Map<String, Object> response = new HashMap<>();
+                response.put("id", student.getId());
+                response.put("studentId", student.getStudentId());
+                response.put("name", student.getName());
+                return ResponseEntity.ok(response);
+            }
+            case "NO_USER" -> {
+                session.invalidate();
+                return ResponseEntity.status(401).body(Map.of("error", "존재하지 않는 사용자입니다."));
+            }
+            case "WRONG_PASSWORD" -> {
+                session.invalidate();
+                return ResponseEntity.status(401).body(Map.of("error", "비밀번호가 일치하지 않습니다."));
+            }
+            case "ALREADY_LOGGED_IN" -> {
+                session.invalidate();
+                return ResponseEntity.status(401).body(Map.of("error", "이미 로그인된 사용자입니다."));
+            }
+            default -> {
+                session.invalidate();
+                return ResponseEntity.status(500).body(Map.of("error", "알 수 없는 오류"));
+            }
         }
     }
+
 
 
     //로그아웃
