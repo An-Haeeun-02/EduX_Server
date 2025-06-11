@@ -16,6 +16,16 @@ public class ExamResult {
     private Long userId;
     private String examQuestionId;
     private String userAnswer;
+    @Column(name = "is_grade")
+    private Integer isGrade = 0;
+
+    public Integer getIsGrade() {
+        return isGrade;
+    }
+
+    public void setIsGrade(Integer isGrade) {
+        this.isGrade = isGrade;
+    }
 
     public Long getId() {
         return id;

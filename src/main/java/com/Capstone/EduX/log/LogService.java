@@ -321,7 +321,7 @@ public class LogService {
     }
 
 
-    public ExamStatus determineExamStatus(Long studentId, Long examInfoId, Long classroomId) {
+    public ExamStatus determineExamStatus(String studentId, Long examInfoId, Long classroomId) {
 
         // 1. student_classroom_id 조회
         Student student = studentRepository.findByStudentId(String.valueOf(studentId));
