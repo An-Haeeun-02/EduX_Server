@@ -2,6 +2,10 @@ package com.Capstone.EduX.examResult;
 
 import com.Capstone.EduX.examInfo.ExamInfo;
 import com.Capstone.EduX.examInfo.ExamInfoRepository;
+import com.Capstone.EduX.gradingResult.GradingResultRepository;
+import jakarta.transaction.Transactional;
+import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
@@ -9,36 +13,42 @@ import org.springframework.web.server.ResponseStatusException;
 import java.util.*;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 public class ExamResultService {
 
     private final ExamResultRepository examResultRepository;
     private final ExamInfoRepository examInfoRepository;
+    private final GradingResultRepository gradingResultRepository;
 
-    public ExamResultService(ExamResultRepository examResultRepository, ExamInfoRepository examInfoRepository) {
+    public ExamResultService(ExamResultRepository examResultRepository,
+                             ExamInfoRepository examInfoRepository,
+                             GradingResultRepository gradingResultRepository) {
         this.examResultRepository = examResultRepository;
         this.examInfoRepository = examInfoRepository;
+        this.gradingResultRepository = gradingResultRepository;
     }
 
     //저장된 답안이 있는지 여부 판단
     public List<Map<String, Object>> getUserAnswers(Long examId, Long userId) {
         List<ExamResult> results = examResultRepository.findByExamInfoIdAndUserId(examId, userId);
 
-        //저장된 답안이 없을때
-        if (results.isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "저장된 답안이 없습니다.");
+        // 빈 리스트로 처리 (404 대신)
+        if (results == null || results.isEmpty()) {
+            return Collections.emptyList();
         }
 
-        // Map으로 응답 만들기 (원하는 데이터만 뽑기)
-        return results.stream().map(result -> {
-            Map<String, Object> map = new HashMap<>();
-            map.put("id", result.getId());
-            map.put("examInfoID", result.getExamInfo().getId());
-            map.put("examQuestionId", result.getExamQuestionId());
-            map.put("userAnswer", result.getUserAnswer());
-            return map;
+        return results.stream()
+                .map(er -> {
+                    Map<String, Object> m = new HashMap<>();
+                    m.put("examResultId",   er.getId());
+                    m.put("questionId",     er.getExamQuestionId());
+                    m.put("userAnswer",     er.getUserAnswer());
+                    m.put("isGrade", er.getIsGrade() != null ? er.getIsGrade() : 0);
 
-        }).collect(Collectors.toList());
+                    return m;
+                })
+                .collect(Collectors.toList());
     }
 
     //단일 정답 저장
@@ -103,4 +113,31 @@ public class ExamResultService {
         return savedIds;
     }
 
+    @Transactional
+    public void updateIsGradeFlag(Long examResultId) {
+        log.debug("✅ isGrade 업데이트 실행: examResultId={}", examResultId);
+
+        ExamResult er = examResultRepository.findById(examResultId)
+                .orElseThrow(() -> new RuntimeException("해당 시험 결과를 찾을 수 없습니다."));
+
+        boolean graded = gradingResultRepository.findByExamResultId(examResultId)
+                .stream()
+                .anyMatch(gr -> gr.getExamQuestionId() != null);
+
+        er.setIsGrade(graded ? 1 : 0);
+        examResultRepository.save(er);
+    }
+
+    public List<Map<String, Object>> getIsGradeListByStudentAndExam(Long userId, Long examId) {
+        List<ExamResult> results = examResultRepository.findByUserIdAndExamInfoId(userId, examId);
+
+        return results.stream().map(er -> {
+            Map<String, Object> map = new HashMap<>();
+            map.put("examResultId", er.getId());
+            map.put("isGrade", er.getIsGrade());
+            return map;
+        }).collect(Collectors.toList());
+    }
+
 }
+

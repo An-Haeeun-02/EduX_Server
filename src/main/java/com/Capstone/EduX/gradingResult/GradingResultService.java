@@ -4,34 +4,43 @@ import com.Capstone.EduX.examQuestion.ExamQuestion;
 import com.Capstone.EduX.examQuestion.ExamQuestionService;
 import com.Capstone.EduX.examResult.ExamResult;
 import com.Capstone.EduX.examResult.ExamResultRepository;
+import com.Capstone.EduX.examResult.ExamResultService;
 import com.Capstone.EduX.score.Score;
 import com.Capstone.EduX.score.ScoreRepository;
 import com.Capstone.EduX.student.Student;
 import com.Capstone.EduX.student.StudentRepository;
+import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.*;
 
+@Slf4j
 @Service
-class GradingResultService {
+public class GradingResultService {
 
     private final GradingResultRepository gradingResultRepository;
     private final ExamQuestionService examQuestionService;
     private final ExamResultRepository examResultRepository;
     private final ScoreRepository scoreRepository;
     private final StudentRepository studentRepository;
+    private final ExamResultService examResultService;
 
     public GradingResultService(GradingResultRepository gradingResultRepository,
                                 ExamQuestionService examQuestionService,
                                 ExamResultRepository examResultRepository,
                                 ScoreRepository scoreRepository,
-                                StudentRepository studentRepository) {
+                                StudentRepository studentRepository,
+                                ExamResultService examResultService) {
         this.gradingResultRepository = gradingResultRepository;
         this.examQuestionService = examQuestionService;
         this.examResultRepository = examResultRepository;
         this.scoreRepository = scoreRepository;
         this.studentRepository = studentRepository;
+        this.examResultService = examResultService;
     }
 
     public List<Map<String, Object>> getStudentExamAnswers(String name, String studentNumber, Long examId) {
@@ -50,9 +59,27 @@ class GradingResultService {
             map.put("questionId", question.getId());
             map.put("studentAnswer", result.getUserAnswer());
             map.put("questionScore", question.getQuestionScore());
+            map.put("type", question.getType());
+
+            // 객관식 정답은 인덱스로 변환해서 내려줌
+            if ("multiple".equalsIgnoreCase(question.getType())) {
+                Object rawAnswer = question.getAnswer();
+                int correctIndex = -1;
+
+                // 정답이 List 형태일 경우
+                if (rawAnswer instanceof List<?> rawList && !rawList.isEmpty()) {
+                    try {
+                        correctIndex = Integer.parseInt(String.valueOf(rawList.get(0)));
+                    } catch (Exception e) {
+                        correctIndex = -1;
+                    }
+                }
+                map.put("correctAnswer", String.valueOf(correctIndex));
+            } else {
+                map.put("correctAnswer", question.getAnswer());
+            }
             list.add(map);
         }
-
         return list;
     }
 
@@ -72,6 +99,7 @@ class GradingResultService {
 
         gr.setScorePerQuestion(score);
         gradingResultRepository.save(gr);
+        examResultService.updateIsGradeFlag(examResultId);
     }
 
     public boolean isAllGraded(Long examResultId) {
@@ -138,63 +166,110 @@ class GradingResultService {
         List<ExamResult> results = examResultRepository.findByUserIdAndExamInfoId(studentId, examId);
         List<Map<String, Object>> list = new ArrayList<>();
 
+        if (results == null) return list;
+
         for (ExamResult er : results) {
             ExamQuestion question = examQuestionService.findById(er.getExamQuestionId());
+            if (question == null) continue;
+
             Optional<GradingResult> grOpt = gradingResultRepository.findByExamResultId(er.getId()).stream()
-                    .filter(gr -> gr.getExamQuestionId().equals(er.getExamQuestionId()))
+                    .filter(gr -> gr.getExamQuestionId() != null && gr.getExamQuestionId().equals(er.getExamQuestionId()))
                     .findFirst();
 
             String symbol = null;
-            if (grOpt.isPresent()) {
-                int score = grOpt.get().getScorePerQuestion();
-                int maxScore = question.getQuestionScore();
+            Integer score = null;
 
-                if (score == maxScore) symbol = "O";
-                else if (score == 0) symbol = "X";
-                else symbol = "△";
+            if (grOpt.isPresent()) {
+                GradingResult gr = grOpt.get();
+                score = gr.getScorePerQuestion();
+
+                Integer maxScore = question.getQuestionScore();
+                if (score != null && maxScore != null) {
+                    if (score.equals(maxScore)) symbol = "O";
+                    else if (score == 0) symbol = "X";
+                    else symbol = "△";
+                }
             }
 
             Map<String, Object> map = new HashMap<>();
             map.put("questionNumber", question.getNumber());
             map.put("questionId", question.getId());
             map.put("status", symbol);
+            map.put("score", score); // null일 수 있음
             list.add(map);
         }
 
         return list;
     }
 
+    @Transactional
     public void autoGradeForStudent(String name, String studentNumber, Long examId) {
-        // 학생 정보 조회
-        Student student = studentRepository.findByNameAndStudentNumber(name, Long.parseLong(studentNumber))
-                .orElseThrow(() -> new RuntimeException("학생을 찾을 수 없습니다."));
+        // 1) 학생 조회
+        Student student = studentRepository.findByNameAndStudentNumber(
+                name, Long.parseLong(studentNumber)
+        ).orElseThrow(() -> new RuntimeException("학생을 찾을 수 없습니다."));
 
-        // 해당 학생이 본 시험의 모든 응답 조회
-        List<ExamResult> results = examResultRepository.findByUserIdAndExamInfoId(student.getId(), examId);
+        // 2) 해당 시험에 대한 모든 개별 문항 응답 결과
+        List<ExamResult> results = examResultRepository
+                .findByUserIdAndExamInfoId(student.getId(), examId);
 
         for (ExamResult result : results) {
             ExamQuestion question = examQuestionService.findById(result.getExamQuestionId());
+            String type = question.getType().toLowerCase();
 
-            // 객관식일 경우 자동 채점
-            if ("객관식".equals(question.getType())) {
-                int score = result.getUserAnswer().equals(question.getAnswer())
-                        ? question.getQuestionScore()
-                        : 0;
+            // 객관식(multiple) 혹은 OX 문제만 자동채점
+            if ("multiple".equals(type) || "ox".equals(type)) {
+                int score = 0;
 
-                // 정확한 examResultId + examQuestionId 조합으로 중복 여부 확인
+                // 3) DB에 저장된 정답(rawAnswer)을 꺼내서
+                Object rawAnswer = question.getAnswer();
+                //    rawAnswer가 List라면 첫 요소, 아니라면 바로 파싱
+                int oneBased;
+                if (rawAnswer instanceof List<?> list && !list.isEmpty()) {
+                    oneBased = Integer.parseInt(String.valueOf(list.get(0)));
+                } else {
+                    oneBased = Integer.parseInt(String.valueOf(rawAnswer));
+                }
+
+                if ("multiple".equals(type)) {
+                    // 4) 1-based → 0-based 인덱스로 변환
+                    int correctIndex = oneBased - 1;
+                    // 5) 학생 답안도 0-based 인덱스 문자열로 와 있으니 파싱
+                    int studentIdx = Integer.parseInt(result.getUserAnswer());
+                    // 6) 인덱스 비교
+                    if (studentIdx == correctIndex) {
+                        score = question.getQuestionScore();
+                    }
+                } else { // "ox" 타입
+                    // rawAnswer 자체가 "O" 또는 "X" 라고 가정
+                    String correctText = String.valueOf(
+                            rawAnswer instanceof List<?> lst && !lst.isEmpty()
+                                    ? lst.get(0)
+                                    : rawAnswer
+                    );
+                    // 학생답도 "O"/"X" 문자열이므로 단순 비교
+                    if (correctText.equalsIgnoreCase(result.getUserAnswer())) {
+                        score = question.getQuestionScore();
+                    }
+                }
+
+                // 7) GradingResult에 저장
                 Optional<GradingResult> existingGr = gradingResultRepository
-                        .findByExamResultIdAndExamQuestionId(result.getId(), result.getExamQuestionId());
-
+                        .findByExamResultIdAndExamQuestionId(
+                                result.getId(), result.getExamQuestionId()
+                        );
                 GradingResult gr = existingGr.orElse(
                         new GradingResult(result.getExamQuestionId(), result.getId(), 0)
                 );
-
                 gr.setScorePerQuestion(score);
                 gradingResultRepository.save(gr);
+
+                // 8) isGrade 플래그 업데이트
+                examResultService.updateIsGradeFlag(result.getId());
             }
         }
 
-        // 모든 문제 채점 완료 시 총점 계산
+        // 총점 계산 및 저장
         if (!results.isEmpty() && isAllGraded(results.get(0).getId())) {
             ExamResult firstExamResult = results.get(0);
 
@@ -212,6 +287,7 @@ class GradingResultService {
             updateTotalScore(firstExamResult.getId());
         }
     }
+
 
 
     public Integer getTotalScore(String name, String studentNumber, Long examId) {

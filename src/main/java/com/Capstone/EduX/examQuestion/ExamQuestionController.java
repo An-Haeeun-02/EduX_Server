@@ -99,4 +99,10 @@ public class ExamQuestionController {
         return ResponseEntity.ok().build();
     }
 
+    @GetMapping("/exam/{examId}/all")
+    public ResponseEntity<List<ExamQuestion>> getByExamId(@PathVariable Long examId) {
+        List<ExamQuestion> list = examQuestionService.findByExamId(examId);
+        return ResponseEntity.ok(list);
+    }
+
 }

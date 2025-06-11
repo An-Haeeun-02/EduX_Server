@@ -9,6 +9,5 @@ public interface GradingResultRepository extends MongoRepository<GradingResult, 
     List<GradingResult> findByExamQuestionId(String examQuestionId);
     // GradingResultRepository.java
     Optional<GradingResult> findByExamResultIdAndExamQuestionId(Long examResultId, String examQuestionId);
-
 }
 

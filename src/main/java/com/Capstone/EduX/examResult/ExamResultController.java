@@ -67,4 +67,12 @@ public class ExamResultController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("여러 답안 저장 중 오류가 발생했습니다.");
         }
     }
+
+    @GetMapping("/student")
+    public ResponseEntity<?> getStudentExamResultGrades(@RequestParam Long examId,
+                                                        @RequestParam Long userId) {
+        List<Map<String, Object>> result = examResultService.getIsGradeListByStudentAndExam(userId, examId);
+        return ResponseEntity.ok(result);
+    }
+
 }
