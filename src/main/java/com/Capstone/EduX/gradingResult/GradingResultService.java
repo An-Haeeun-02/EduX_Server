@@ -217,59 +217,53 @@ public class GradingResultService {
             ExamQuestion question = examQuestionService.findById(result.getExamQuestionId());
             String type = question.getType().toLowerCase();
 
-            // 객관식(multiple) 혹은 OX 문제만 자동채점
-            if ("multiple".equals(type) || "ox".equals(type)) {
-                int score = 0;
+            int score = 0;
 
-                // 3) DB에 저장된 정답(rawAnswer)을 꺼내서
+            if ("multiple".equals(type)) {
+                // 객관식: DB의 answer는 1-based 번호. 0-based로 변환해야 함
                 Object rawAnswer = question.getAnswer();
-                //    rawAnswer가 List라면 첫 요소, 아니라면 바로 파싱
                 int oneBased;
                 if (rawAnswer instanceof List<?> list && !list.isEmpty()) {
                     oneBased = Integer.parseInt(String.valueOf(list.get(0)));
                 } else {
                     oneBased = Integer.parseInt(String.valueOf(rawAnswer));
                 }
-
-                if ("multiple".equals(type)) {
-                    // 4) 1-based → 0-based 인덱스로 변환
-                    int correctIndex = oneBased - 1;
-                    // 5) 학생 답안도 0-based 인덱스 문자열로 와 있으니 파싱
-                    int studentIdx = Integer.parseInt(result.getUserAnswer());
-                    // 6) 인덱스 비교
-                    if (studentIdx == correctIndex) {
-                        score = question.getQuestionScore();
-                    }
-                } else { // "ox" 타입
-                    // rawAnswer 자체가 "O" 또는 "X" 라고 가정
-                    String correctText = String.valueOf(
-                            rawAnswer instanceof List<?> lst && !lst.isEmpty()
-                                    ? lst.get(0)
-                                    : rawAnswer
-                    );
-                    // 학생답도 "O"/"X" 문자열이므로 단순 비교
-                    if (correctText.equalsIgnoreCase(result.getUserAnswer())) {
-                        score = question.getQuestionScore();
-                    }
+                int correctIndex = oneBased - 1;
+                int studentIdx = Integer.parseInt(result.getUserAnswer());
+                if (studentIdx == correctIndex) {
+                    score = question.getQuestionScore();
                 }
-
-                // 7) GradingResult에 저장
-                Optional<GradingResult> existingGr = gradingResultRepository
-                        .findByExamResultIdAndExamQuestionId(
-                                result.getId(), result.getExamQuestionId()
-                        );
-                GradingResult gr = existingGr.orElse(
-                        new GradingResult(result.getExamQuestionId(), result.getId(), 0)
-                );
-                gr.setScorePerQuestion(score);
-                gradingResultRepository.save(gr);
-
-                // 8) isGrade 플래그 업데이트
-                examResultService.updateIsGradeFlag(result.getId());
+            } else if ("ox".equals(type)) {
+                // OX: answer와 userAnswer 모두 "O"/"X" 문자임
+                Object rawAnswer = question.getAnswer();
+                String correctText;
+                if (rawAnswer instanceof List<?> list && !list.isEmpty()) {
+                    correctText = String.valueOf(list.get(0));
+                } else {
+                    correctText = String.valueOf(rawAnswer);
+                }
+                String studentOX = result.getUserAnswer();
+                if (correctText.equalsIgnoreCase(studentOX)) {
+                    score = question.getQuestionScore();
+                }
             }
+
+            // 7) GradingResult에 저장
+            Optional<GradingResult> existingGr = gradingResultRepository
+                    .findByExamResultIdAndExamQuestionId(
+                            result.getId(), result.getExamQuestionId()
+                    );
+            GradingResult gr = existingGr.orElse(
+                    new GradingResult(result.getExamQuestionId(), result.getId(), 0)
+            );
+            gr.setScorePerQuestion(score);
+            gradingResultRepository.save(gr);
+
+            // 8) isGrade 플래그 업데이트
+            examResultService.updateIsGradeFlag(result.getId());
         }
 
-        // 총점 계산 및 저장
+        // 9) 총점 계산 및 저장
         if (!results.isEmpty() && isAllGraded(results.get(0).getId())) {
             ExamResult firstExamResult = results.get(0);
 
@@ -287,8 +281,6 @@ public class GradingResultService {
             updateTotalScore(firstExamResult.getId());
         }
     }
-
-
 
     public Integer getTotalScore(String name, String studentNumber, Long examId) {
         Student student = studentRepository.findByNameAndStudentNumber(name, Long.parseLong(studentNumber))

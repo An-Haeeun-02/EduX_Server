@@ -2,6 +2,9 @@ package com.Capstone.EduX.log;
 
 import com.Capstone.EduX.StudentClassroom.StudentClassroom;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 
@@ -45,5 +48,8 @@ public interface LogRepository extends JpaRepository<Log, Long> {
     List<Log> findByStudentClassroomIdOrderByTimestampAsc(Long studentClassroomId);
 
     List<Log> findByStudentClassroomIdAndExamInfoId(Long studentClassroomId, Long examInfoId);
+    @Modifying
+    @Query("DELETE FROM Log l WHERE l.examInfo.id = :examId")
+    void deleteByExamInfoId(@Param("examId") Long examId);
 
 }

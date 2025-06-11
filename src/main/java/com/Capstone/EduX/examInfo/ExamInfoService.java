@@ -10,6 +10,7 @@ import com.Capstone.EduX.examQuestion.ExamQuestionRepository;
 import com.Capstone.EduX.examRange.ExamRangeRepository;
 import com.Capstone.EduX.examResult.ExamResultRepository;
 import com.Capstone.EduX.gradingResult.GradingResultRepository;
+import com.Capstone.EduX.log.LogRepository;
 import com.Capstone.EduX.score.ScoreRepository;
 import com.Capstone.EduX.student.Student;
 import com.Capstone.EduX.student.StudentRepository;
@@ -32,6 +33,7 @@ public class ExamInfoService {
     private final ExamResultRepository examResultRepository;
     private final ScoreRepository scoreRepository;
     private final GradingResultRepository gradingResultRepository;
+    private final LogRepository logRepository;
 
     private final StudentClassroomRepository studentClassroomRepository;
 
@@ -43,7 +45,8 @@ public class ExamInfoService {
                            StudentClassroomRepository studentClassroomRepository,
                            ExamResultRepository examResultRepository,
                            ScoreRepository scoreRepository,
-                           GradingResultRepository gradingResultRepository) {
+                           GradingResultRepository gradingResultRepository,
+                           LogRepository logRepository) {
         this.studentRepository = studentRepository;
         this.examInfoRepository = examInfoRepository;
         this.classroomRepository = classroomRepository;
@@ -53,6 +56,7 @@ public class ExamInfoService {
         this.examResultRepository = examResultRepository;
         this.scoreRepository = scoreRepository;
         this.gradingResultRepository = gradingResultRepository;
+        this.logRepository = logRepository;
     }
 
 //    public List<ExamInfo> getActiveExams(Long classroomId) {
@@ -241,7 +245,13 @@ public class ExamInfoService {
         } catch (Exception e) {
             System.out.println("총점 삭제 실패 또는 없음: " + e.getMessage());
         }
-
+        // log 테이블 삭제 (MySQL)
+        try {
+            logRepository.deleteByExamInfoId(examId);
+            System.out.println("로그 삭제 완료");
+        } catch (Exception e) {
+            System.out.println("로그 삭제 실패 또는 없음: " + e.getMessage());
+        }
         // 1. 시험 범위 삭제 (MySQL)
         try {
             examRangeRepository.deleteByExamInfo_Id(examId);
@@ -291,6 +301,7 @@ public class ExamInfoService {
         } catch (Exception e) {
             System.out.println("시험 정보 삭제 실패: " + e.getMessage());
         }
+
     }
 
 
