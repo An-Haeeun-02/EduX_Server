@@ -204,12 +204,10 @@ public class GradingResultService {
 
     @Transactional
     public void autoGradeForStudent(String name, String studentNumber, Long examId) {
-        // 1) 학생 조회
         Student student = studentRepository.findByNameAndStudentNumber(
                 name, Long.parseLong(studentNumber)
         ).orElseThrow(() -> new RuntimeException("학생을 찾을 수 없습니다."));
 
-        // 2) 해당 시험에 대한 모든 개별 문항 응답 결과
         List<ExamResult> results = examResultRepository
                 .findByUserIdAndExamInfoId(student.getId(), examId);
 
@@ -220,7 +218,6 @@ public class GradingResultService {
             int score = 0;
 
             if ("multiple".equals(type)) {
-                // 객관식: DB의 answer는 1-based 번호. 0-based로 변환해야 함
                 Object rawAnswer = question.getAnswer();
                 int oneBased;
                 if (rawAnswer instanceof List<?> list && !list.isEmpty()) {
@@ -233,8 +230,10 @@ public class GradingResultService {
                 if (studentIdx == correctIndex) {
                     score = question.getQuestionScore();
                 }
+                // 자동채점된 문제만 is_grade = 1로!
+                examResultService.updateIsGradeFlag(result.getId());
+
             } else if ("ox".equals(type)) {
-                // OX: answer와 userAnswer 모두 "O"/"X" 문자임
                 Object rawAnswer = question.getAnswer();
                 String correctText;
                 if (rawAnswer instanceof List<?> list && !list.isEmpty()) {
@@ -246,9 +245,11 @@ public class GradingResultService {
                 if (correctText.equalsIgnoreCase(studentOX)) {
                     score = question.getQuestionScore();
                 }
+                // 자동채점된 문제만 is_grade = 1로!
+                examResultService.updateIsGradeFlag(result.getId());
             }
+            // 서술형 등 기타 타입은 자동채점/업데이트 하지 않음
 
-            // 7) GradingResult에 저장
             Optional<GradingResult> existingGr = gradingResultRepository
                     .findByExamResultIdAndExamQuestionId(
                             result.getId(), result.getExamQuestionId()
@@ -258,12 +259,9 @@ public class GradingResultService {
             );
             gr.setScorePerQuestion(score);
             gradingResultRepository.save(gr);
-
-            // 8) isGrade 플래그 업데이트
-            examResultService.updateIsGradeFlag(result.getId());
         }
 
-        // 9) 총점 계산 및 저장
+        // 총점 계산 및 저장(이 부분은 이전과 동일하게 유지)
         if (!results.isEmpty() && isAllGraded(results.get(0).getId())) {
             ExamResult firstExamResult = results.get(0);
 
@@ -281,6 +279,7 @@ public class GradingResultService {
             updateTotalScore(firstExamResult.getId());
         }
     }
+
 
     public Integer getTotalScore(String name, String studentNumber, Long examId) {
         Student student = studentRepository.findByNameAndStudentNumber(name, Long.parseLong(studentNumber))
