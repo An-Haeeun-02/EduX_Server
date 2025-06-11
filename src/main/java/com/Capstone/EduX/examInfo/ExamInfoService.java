@@ -5,8 +5,12 @@ import com.Capstone.EduX.Classroom.ClassroomRepository;
 import com.Capstone.EduX.StudentClassroom.StudentClassroom;
 import com.Capstone.EduX.StudentClassroom.StudentClassroomRepository;
 import com.Capstone.EduX.examInfo.dto.ExamCreateRequest;
+import com.Capstone.EduX.examQuestion.ExamQuestion;
 import com.Capstone.EduX.examQuestion.ExamQuestionRepository;
 import com.Capstone.EduX.examRange.ExamRangeRepository;
+import com.Capstone.EduX.examResult.ExamResultRepository;
+import com.Capstone.EduX.gradingResult.GradingResultRepository;
+import com.Capstone.EduX.score.ScoreRepository;
 import com.Capstone.EduX.student.Student;
 import com.Capstone.EduX.student.StudentRepository;
 import org.springframework.stereotype.Service;
@@ -25,16 +29,30 @@ public class ExamInfoService {
     private final StudentRepository studentRepository;
     private final ExamRangeRepository examRangeRepository;
     private final ExamQuestionRepository examQuestionRepository;
+    private final ExamResultRepository examResultRepository;
+    private final ScoreRepository scoreRepository;
+    private final GradingResultRepository gradingResultRepository;
 
     private final StudentClassroomRepository studentClassroomRepository;
 
-    public ExamInfoService(StudentRepository studentRepository, ExamInfoRepository examInfoRepository, ClassroomRepository classroomRepository, ExamRangeRepository examRangeRepository, ExamQuestionRepository examQuestionRepository, StudentClassroomRepository studentClassroomRepository) {
+    public ExamInfoService(StudentRepository studentRepository,
+                           ExamInfoRepository examInfoRepository,
+                           ClassroomRepository classroomRepository,
+                           ExamRangeRepository examRangeRepository,
+                           ExamQuestionRepository examQuestionRepository,
+                           StudentClassroomRepository studentClassroomRepository,
+                           ExamResultRepository examResultRepository,
+                           ScoreRepository scoreRepository,
+                           GradingResultRepository gradingResultRepository) {
         this.studentRepository = studentRepository;
         this.examInfoRepository = examInfoRepository;
         this.classroomRepository = classroomRepository;
         this.examRangeRepository = examRangeRepository;
         this.examQuestionRepository = examQuestionRepository;
         this.studentClassroomRepository = studentClassroomRepository;
+        this.examResultRepository = examResultRepository;
+        this.scoreRepository = scoreRepository;
+        this.gradingResultRepository = gradingResultRepository;
     }
 
 //    public List<ExamInfo> getActiveExams(Long classroomId) {
@@ -216,6 +234,14 @@ public class ExamInfoService {
 
     @Transactional
     public void deleteExamCascade(Long examId) {
+        // 0. 총점 삭제 (MySQL)
+        try {
+            scoreRepository.deleteByExamInfoId(examId);
+            System.out.println("총점 삭제 완료");
+        } catch (Exception e) {
+            System.out.println("총점 삭제 실패 또는 없음: " + e.getMessage());
+        }
+
         // 1. 시험 범위 삭제 (MySQL)
         try {
             examRangeRepository.deleteByExamInfo_Id(examId);
@@ -224,15 +250,37 @@ public class ExamInfoService {
             System.out.println("시험 범위 삭제 실패 또는 없음: " + e.getMessage());
         }
 
-        // 2. 시험 문제 삭제 (MongoDB)
+        // 2. 시험 문제 삭제 (MongoDB) + GradingResult (MongoDB)
+        List<String> questionIds = new ArrayList<>();
         try {
+            // (1) 문제 ID 리스트 뽑기
+            List<ExamQuestion> questions = examQuestionRepository.findByExamId(examId);
+            questionIds = questions.stream().map(ExamQuestion::getId).toList();
+
+            // (2) GradingResult에서 한 번에 삭제
+            if (!questionIds.isEmpty()) {
+                gradingResultRepository.deleteByExamQuestionIdIn(questionIds);
+                System.out.println("채점 결과(GradingResult) 삭제 완료");
+            } else {
+                System.out.println("채점 결과(GradingResult) 삭제 건너뜀(문제 없음)");
+            }
+
+            // (3) 문제 자체 삭제
             examQuestionRepository.deleteByExamId(examId);
             System.out.println("시험 문제 삭제 완료");
         } catch (Exception e) {
-            System.out.println("시험 문제 삭제 실패 또는 없음: " + e.getMessage());
+            System.out.println("시험 문제/채점 결과 삭제 실패 또는 없음: " + e.getMessage());
         }
 
-        // 3. 시험 정보 삭제 (MySQL)
+        // 3. exam_result (학생 답안) 삭제
+        try {
+            examResultRepository.deleteByExamInfoId(examId);
+            System.out.println("학생 답안(ExamResult) 삭제 완료");
+        } catch (Exception e) {
+            System.out.println("학생 답안(ExamResult) 삭제 실패 또는 없음: " + e.getMessage());
+        }
+
+        // 4. 시험 정보 삭제 (MySQL)
         try {
             if (examInfoRepository.existsById(examId)) {
                 examInfoRepository.deleteById(examId);
@@ -244,6 +292,8 @@ public class ExamInfoService {
             System.out.println("시험 정보 삭제 실패: " + e.getMessage());
         }
     }
+
+
 
     public ExamInfo getExamById(Long id) {
         return examInfoRepository.findById(id)

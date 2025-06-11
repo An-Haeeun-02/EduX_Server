@@ -1,6 +1,9 @@
 package com.Capstone.EduX.examResult;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -21,4 +24,9 @@ public interface ExamResultRepository extends JpaRepository<ExamResult, Long> {
 
     //시험 저장(단일)
     Optional<ExamResult> findByExamInfoIdAndUserIdAndExamQuestionId(Long examInfoId, Long userId, String examQuestionId);
+
+    @Modifying
+    @Query("DELETE FROM ExamResult e WHERE e.examInfo.id = :examId")
+    void deleteByExamInfoId(@Param("examId") Long examId);
+
 }
