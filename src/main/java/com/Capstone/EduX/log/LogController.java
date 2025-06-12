@@ -133,7 +133,7 @@ public class LogController {
     //시험 상태
     @GetMapping("/exam-status")
     public ResponseEntity<String> getExamStatus(
-            @RequestParam Long studentId,
+            @RequestParam String studentId,
             @RequestParam Long examInfoId,
             @RequestParam Long classroomId
     ) {
