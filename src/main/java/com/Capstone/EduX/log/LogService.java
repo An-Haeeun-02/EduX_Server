@@ -334,7 +334,9 @@ public class LogService {
                 .orElseThrow(() -> new NoSuchElementException("해당 강의실에 등록된 학생이 아닙니다."));
 
         // 2. student_classroom_id 기준으로 로그 조회
-        List<Log> logs = logRepository.findByStudentClassroomIdOrderByTimestampAsc(studentClassroom.getId());
+        List<Log> logs = logRepository.findByStudentClassroomIdAndExamInfoIdOrderByTimestampAsc(
+                studentClassroom.getId(), examInfoId
+        );
 
         boolean hasStarted = false;
         boolean hasSubmitted = false;
