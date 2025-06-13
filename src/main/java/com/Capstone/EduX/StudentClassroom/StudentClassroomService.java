@@ -5,6 +5,7 @@ import com.Capstone.EduX.Classroom.ClassroomRepository;
 import com.Capstone.EduX.examInfo.ExamInfo;
 import com.Capstone.EduX.examInfo.ExamInfoService;
 import com.Capstone.EduX.examParticipation.ExamParticipationRepository;
+import com.Capstone.EduX.examResult.ExamResult;
 import com.Capstone.EduX.examResult.ExamResultRepository;
 import com.Capstone.EduX.gradingResult.GradingResultRepository;
 import com.Capstone.EduX.log.LogRepository;
@@ -101,6 +102,7 @@ public class StudentClassroomService {
     // 강의실에서 학생 제거(강퇴)
     @Transactional
     public void removeStudentFromClassroom(Long studentId, Long classroomId) {
+        // 1. 엔티티 조회
         Student student = studentRepository.findById(studentId)
                 .orElseThrow(() -> new NoSuchElementException("학생을 찾을 수 없습니다."));
         Classroom classroom = classroomRepository.findById(classroomId)
@@ -109,32 +111,35 @@ public class StudentClassroomService {
         if (relation == null) {
             throw new NoSuchElementException("해당 학생은 이 강의실에 등록되어 있지 않습니다.");
         }
-
         Long studentClassroomId = relation.getId();
 
-        // ✅ 1. 로그 먼저 삭제
+        // 2. 로그 삭제 (log 테이블)
         logRepository.deleteByStudentClassroomId(studentClassroomId);
 
-        // ✅ 2. 시험 리스트 가져오기
+        // 3. 해당 강의실의 시험 목록 조회
         List<ExamInfo> exams = examInfoService.getExamsByClassroomId(classroomId);
 
         for (ExamInfo exam : exams) {
             Long examId = exam.getId();
 
-            // 시험 참여 삭제
+            // 3-1. 시험 참여 삭제
             examParticipationRepository.deleteByStudentIdAndExamId(studentId, examId);
 
-            // 점수 삭제
+            // 3-2. 점수 삭제
             scoreRepository.deleteByStudentIdAndExamId(studentId, examId);
 
-            // grading_result 삭제 (Mongo)
-            gradingResultRepository.deleteByStudentIdAndExamId(studentId, examId);
+            // 3-3. 응시 결과 조회 및 삭제 (grading_result 포함)
+            List<ExamResult> examResults = examResultRepository.findByUserIdAndExamInfoId(studentId, examId);
 
-            // exam_result 삭제 (Mongo)
-            examResultRepository.deleteByStudentIdAndExamId(studentId, examId);
+            for (ExamResult result : examResults) {
+                gradingResultRepository.deleteByExamResultId(result.getId()); // Mongo 삭제
+            }
+
+            // 3-4. 응시 결과 자체도 삭제 (MySQL)
+            examResultRepository.deleteAll(examResults);
         }
 
-        // ✅ 3. student_classroom 삭제
+        // 4. student_classroom 삭제
         studentClassroomRepository.delete(relation);
     }
 
