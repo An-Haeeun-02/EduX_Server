@@ -52,4 +52,7 @@ public interface LogRepository extends JpaRepository<Log, Long> {
     @Query("DELETE FROM Log l WHERE l.examInfo.id = :examId")
     void deleteByExamInfoId(@Param("examId") Long examId);
 
+    List<Log> findByStudentClassroomIdAndExamInfoIdOrderByTimestampAsc(Long studentClassroomId, Long examInfoId);
+
+
 }
