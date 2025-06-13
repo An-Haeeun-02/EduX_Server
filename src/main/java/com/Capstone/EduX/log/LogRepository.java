@@ -56,4 +56,8 @@ public interface LogRepository extends JpaRepository<Log, Long> {
     @Query("DELETE FROM Log l WHERE l.studentClassroom.id = :studentClassroomId")
     void deleteByStudentClassroomId(@Param("studentClassroomId") Long studentClassroomId);
 
+    List<Log> findByStudentClassroomIdAndExamInfoIdOrderByTimestampAsc(Long studentClassroomId, Long examInfoId);
+
+
+
 }
