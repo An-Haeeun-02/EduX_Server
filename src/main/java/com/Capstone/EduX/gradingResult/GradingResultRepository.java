@@ -15,6 +15,7 @@ public interface GradingResultRepository extends MongoRepository<GradingResult, 
     Optional<GradingResult> findByExamResultIdAndExamQuestionId(Long examResultId, String examQuestionId);
     void deleteByExamQuestionId(String examQuestionId);
     void deleteByExamQuestionIdIn(List<String> examQuestionIds);
+    void deleteByStudentIdAndExamId(Long studentId, Long examId);
 
 }
 

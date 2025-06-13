@@ -5,8 +5,13 @@ import com.Capstone.EduX.Classroom.ClassroomRepository;
 import com.Capstone.EduX.examInfo.ExamInfo;
 import com.Capstone.EduX.examInfo.ExamInfoService;
 import com.Capstone.EduX.examParticipation.ExamParticipationRepository;
+import com.Capstone.EduX.examResult.ExamResultRepository;
+import com.Capstone.EduX.gradingResult.GradingResultRepository;
+import com.Capstone.EduX.log.LogRepository;
+import com.Capstone.EduX.score.ScoreRepository;
 import com.Capstone.EduX.student.Student;
 import com.Capstone.EduX.student.StudentRepository;
+import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
@@ -20,17 +25,29 @@ public class StudentClassroomService {
     private final StudentClassroomRepository studentClassroomRepository;
     private final ExamInfoService examInfoService;
     private final ExamParticipationRepository examParticipationRepository;
+    private final LogRepository logRepository;
+    private final ScoreRepository scoreRepository;
+    private final GradingResultRepository gradingResultRepository;
+    private final ExamResultRepository examResultRepository;
 
     public StudentClassroomService(StudentRepository studentRepository,
                                    ClassroomRepository classroomRepository,
                                    StudentClassroomRepository studentClassroomRepository,
                                    ExamInfoService examInfoService,
-                                   ExamParticipationRepository examParticipationRepository) {
+                                   ExamParticipationRepository examParticipationRepository,
+                                   LogRepository logRepository,
+                                   ScoreRepository scoreRepository,
+                                   GradingResultRepository gradingResultRepository,
+                                   ExamResultRepository examResultRepository) {
         this.studentRepository = studentRepository;
         this.classroomRepository = classroomRepository;
         this.studentClassroomRepository = studentClassroomRepository;
         this.examInfoService = examInfoService;
         this.examParticipationRepository = examParticipationRepository;
+        this.logRepository = logRepository;
+        this.scoreRepository = scoreRepository;
+        this.gradingResultRepository = gradingResultRepository;
+        this.examResultRepository = examResultRepository;
     }
 
     public List<Classroom> getClassrooms(String studentId) {
@@ -82,28 +99,46 @@ public class StudentClassroomService {
     }
 
     // 강의실에서 학생 제거(강퇴)
-    public void removeStudentFromClassroom(String studentId, Long classroomId) {
-        // 학생 조회
-        Student student = studentRepository.findByStudentId(studentId);
-        if (student == null) {
-            throw new NoSuchElementException("학생을 찾을 수 없습니다.");
-        }
-        // 강의실 조회 (클래스룸 존재 여부 확인)
-        Optional<Classroom> classroomOpt = classroomRepository.findById(classroomId);
-        if (!classroomOpt.isPresent()) {
-            throw new NoSuchElementException("강의실을 찾을 수 없습니다.");
-        }
-        Classroom classroom = classroomOpt.get();
-
-        // 해당 학생과 강의실 관계 조회
+    @Transactional
+    public void removeStudentFromClassroom(Long studentId, Long classroomId) {
+        Student student = studentRepository.findById(studentId)
+                .orElseThrow(() -> new NoSuchElementException("학생을 찾을 수 없습니다."));
+        Classroom classroom = classroomRepository.findById(classroomId)
+                .orElseThrow(() -> new NoSuchElementException("강의실을 찾을 수 없습니다."));
         StudentClassroom relation = studentClassroomRepository.findByStudentAndClassroom(student, classroom);
         if (relation == null) {
             throw new NoSuchElementException("해당 학생은 이 강의실에 등록되어 있지 않습니다.");
         }
 
-        // 관계 삭제
+        Long studentClassroomId = relation.getId();
+
+        // ✅ 1. 로그 먼저 삭제
+        logRepository.deleteByStudentClassroomId(studentClassroomId);
+
+        // ✅ 2. 시험 리스트 가져오기
+        List<ExamInfo> exams = examInfoService.getExamsByClassroomId(classroomId);
+
+        for (ExamInfo exam : exams) {
+            Long examId = exam.getId();
+
+            // 시험 참여 삭제
+            examParticipationRepository.deleteByStudentIdAndExamId(studentId, examId);
+
+            // 점수 삭제
+            scoreRepository.deleteByStudentIdAndExamId(studentId, examId);
+
+            // grading_result 삭제 (Mongo)
+            gradingResultRepository.deleteByStudentIdAndExamId(studentId, examId);
+
+            // exam_result 삭제 (Mongo)
+            examResultRepository.deleteByStudentIdAndExamId(studentId, examId);
+        }
+
+        // ✅ 3. student_classroom 삭제
         studentClassroomRepository.delete(relation);
     }
+
+
 
     public List<Map<String, Object>> getStudentsWithExamInfoByClassroomId(Long classroomId) {
         List<Object[]> results = studentClassroomRepository.findStudentsWithExamInfoByClassroomId(classroomId);
