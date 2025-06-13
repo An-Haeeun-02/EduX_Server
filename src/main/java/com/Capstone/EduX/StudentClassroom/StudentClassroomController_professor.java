@@ -55,7 +55,7 @@ public class StudentClassroomController_professor {
     // 강의실에서 학생 강퇴
     @DeleteMapping("/classroom/{classroomId}/student/{studentId}")
     public ResponseEntity<Map<String, Object>> removeStudentFromClassroom(@PathVariable Long classroomId,
-                                                                          @PathVariable String studentId) {
+                                                                          @PathVariable Long studentId) {
         studentClassroomService.removeStudentFromClassroom(studentId, classroomId);
         Map<String, Object> response = new HashMap<>();
         response.put("message", "학생이 강퇴되었습니다.");

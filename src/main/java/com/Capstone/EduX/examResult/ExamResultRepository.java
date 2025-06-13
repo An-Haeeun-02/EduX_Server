@@ -29,4 +29,8 @@ public interface ExamResultRepository extends JpaRepository<ExamResult, Long> {
     @Query("DELETE FROM ExamResult e WHERE e.examInfo.id = :examId")
     void deleteByExamInfoId(@Param("examId") Long examId);
 
+    @Modifying
+    @Query("DELETE FROM ExamResult e WHERE e.examInfo.id = :examId AND e.userId = :studentId")
+    void deleteByStudentIdAndExamId(@Param("studentId") Long studentId, @Param("examId") Long examId);
+
 }

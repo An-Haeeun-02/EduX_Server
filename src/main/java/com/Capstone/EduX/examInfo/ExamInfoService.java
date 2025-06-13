@@ -302,6 +302,7 @@ public class ExamInfoService {
             System.out.println("시험 정보 삭제 실패: " + e.getMessage());
         }
 
+
     }
 
 
@@ -317,6 +318,10 @@ public class ExamInfoService {
                 .orElseThrow(() -> new NoSuchElementException("해당 시험이 없습니다: " + examId));
         exam.setQuestionCount(count);
         examInfoRepository.save(exam);
+    }
+
+    public List<ExamInfo> getExamsByClassroomId(Long classroomId) {
+        return examInfoRepository.findByClassroomId(classroomId);
     }
 
 }
