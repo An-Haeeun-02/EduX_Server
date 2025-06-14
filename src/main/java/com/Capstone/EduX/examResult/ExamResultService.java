@@ -2,6 +2,8 @@ package com.Capstone.EduX.examResult;
 
 import com.Capstone.EduX.examInfo.ExamInfo;
 import com.Capstone.EduX.examInfo.ExamInfoRepository;
+import com.Capstone.EduX.examQuestion.ExamQuestion;
+import com.Capstone.EduX.examQuestion.ExamQuestionRepository;
 import com.Capstone.EduX.gradingResult.GradingResultRepository;
 import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
@@ -20,13 +22,16 @@ public class ExamResultService {
     private final ExamResultRepository examResultRepository;
     private final ExamInfoRepository examInfoRepository;
     private final GradingResultRepository gradingResultRepository;
+    private final ExamQuestionRepository examQuestionRepository;
 
     public ExamResultService(ExamResultRepository examResultRepository,
                              ExamInfoRepository examInfoRepository,
-                             GradingResultRepository gradingResultRepository) {
+                             GradingResultRepository gradingResultRepository,
+                             ExamQuestionRepository examQuestionRepository) {
         this.examResultRepository = examResultRepository;
         this.examInfoRepository = examInfoRepository;
         this.gradingResultRepository = gradingResultRepository;
+        this.examQuestionRepository = examQuestionRepository;
     }
 
     //저장된 답안이 있는지 여부 판단
@@ -81,38 +86,56 @@ public class ExamResultService {
     }
 
     //복수 정답 저장
-    public List<Long> saveMultipleAnswers(Long examId, Long userId, List<Map<String, Object>> answers) {
+    @Transactional
+    public List<Long> saveMultipleAnswers(
+            Long examId,
+            Long userId,
+            List<Map<String, Object>> answers
+    ) {
+        // 1) ExamInfo 존재 확인
         ExamInfo examInfo = examInfoRepository.findById(examId)
-                .orElseThrow(() -> new IllegalArgumentException("시험 정보가 존재하지 않습니다."));
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "시험 정보가 없습니다."
+                ));
+
+        // 2) MongoDB에서 examId로 조회하되, number 오름차순 정렬된 리스트를 가져온다
+        List<ExamQuestion> questionList =
+                examQuestionRepository.findByExamIdOrderByNumberAsc(examId);
+
+        // 3) payload → Map<examQuestionId, userAnswer>
+        Map<String, String> answerMap = answers.stream()
+                .collect(Collectors.toMap(
+                        m -> m.get("examQuestionId").toString(),
+                        m -> Optional.ofNullable(m.get("userAnswer"))
+                                .map(Object::toString)
+                                .orElse(""),
+                        (a, b) -> a
+                ));
 
         List<Long> savedIds = new ArrayList<>();
 
-        for (Map<String, Object> answerData : answers) {
-            String examQuestionId = answerData.get("examQuestionId").toString();
-            String userAnswer = answerData.get("userAnswer").toString();
+        // 4) 모든 문제를 순회하며, 입력값이 없으면 "" 로 채워 저장
+        for (ExamQuestion q : questionList) {
+            String qid = q.getId();
+            String ua  = answerMap.getOrDefault(qid, "");
 
-            Optional<ExamResult> existing = examResultRepository
-                    .findByExamInfoIdAndUserIdAndExamQuestionId(examId, userId, examQuestionId);
+            ExamResult er = examResultRepository
+                    .findByExamInfoIdAndUserIdAndExamQuestionId(examId, userId, qid)
+                    .orElseGet(() -> {
+                        ExamResult blank = new ExamResult();
+                        blank.setExamInfo(examInfo);
+                        blank.setUserId(userId);
+                        blank.setExamQuestionId(qid);
+                        return blank;
+                    });
 
-            ExamResult result;
-            if (existing.isPresent()) {
-                result = existing.get();
-                result.setUserAnswer(userAnswer);
-            } else {
-                result = new ExamResult();
-                result.setExamInfo(examInfo);
-                result.setUserId(userId);
-                result.setExamQuestionId(examQuestionId);
-                result.setUserAnswer(userAnswer);
-            }
+            er.setUserAnswer(ua);
+            er.setIsGrade(0);  // 채점 전
 
-            ExamResult saved = examResultRepository.save(result);
-            savedIds.add(saved.getId());
+            savedIds.add(examResultRepository.save(er).getId());
         }
-
         return savedIds;
     }
-
     @Transactional
     public void updateIsGradeFlag(Long examResultId) {
         log.debug("✅ isGrade 업데이트 실행: examResultId={}", examResultId);
@@ -138,6 +161,7 @@ public class ExamResultService {
             return map;
         }).collect(Collectors.toList());
     }
+
 
 }
 

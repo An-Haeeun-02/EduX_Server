@@ -1,5 +1,6 @@
 package com.Capstone.EduX.examResult;
 
+import jakarta.transaction.Transactional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -32,5 +33,11 @@ public interface ExamResultRepository extends JpaRepository<ExamResult, Long> {
     @Modifying
     @Query("DELETE FROM ExamResult e WHERE e.examInfo.id = :examId AND e.userId = :studentId")
     void deleteByStudentIdAndExamId(@Param("studentId") Long studentId, @Param("examId") Long examId);
+
+    //자동채점 후 isGrade=1로 업데이트
+    @Modifying
+    @Transactional
+    @Query("UPDATE ExamResult e SET e.isGrade = 1 WHERE e.id = :examResultId")
+    void updateIsGradeFlag(@Param("examResultId") Long examResultId);
 
 }
