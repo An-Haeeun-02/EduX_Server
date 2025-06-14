@@ -4,17 +4,20 @@ import com.Capstone.EduX.examQuestion.ExamQuestion;
 import com.Capstone.EduX.examQuestion.ExamQuestionService;
 import com.Capstone.EduX.examResult.ExamResultService;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.*;
 import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/grading")
-@Slf4j
+
 public class GradingResultController {
 
     private final GradingResultService gradingResultService;
@@ -65,17 +68,29 @@ public class GradingResultController {
     }
     //자동채점
     @PostMapping("/autograde")
-    public ResponseEntity<?> autoGradeObjectiveAnswers(@RequestParam String name,
-                                                       @RequestParam String studentNumber,
-                                                       @RequestParam Long examId) {
-        log.debug("▶ 자동채점 API 호출됨: name={}, studentNumber={}, examId={}", name, studentNumber, examId);
-
+    public ResponseEntity<?> autoGrade(
+            @RequestParam String name,
+            @RequestParam String studentNumber,
+            @RequestParam Long examId
+    ) {
+        log.debug("▶ 자동채점 호출: name={}, studentNumber={}, examId={}", name, studentNumber, examId);
         try {
             gradingResultService.autoGradeForStudent(name, studentNumber, examId);
-            return ResponseEntity.ok("자동 채점 완료");
+            return ResponseEntity.ok(Map.of("message", "자동채점 완료"));
+
+        } catch (ResponseStatusException ex) {
+            // getStatusCode()를 사용해서 HttpStatusCode를 가져옵니다.
+            HttpStatusCode status = ex.getStatusCode();
+            log.info("자동채점 처리: status={}, reason={}", status, ex.getReason());
+            return ResponseEntity
+                    .status(status)
+                    .body(Map.of("error", ex.getReason()));
+
         } catch (Exception e) {
-            log.error("❌ 자동채점 중 오류 발생", e);
-            return ResponseEntity.status(500).body(Map.of("error", e.getMessage()));
+            log.error("❌ 자동채점 중 예기치 못한 오류", e);
+            return ResponseEntity
+                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "서버 오류가 발생했습니다."));
         }
     }
 
@@ -94,98 +109,80 @@ public class GradingResultController {
             @RequestParam Long examId,
             @RequestParam Long studentId
     ) {
+        log.info("▶ full 시작: examId={}, studentId={}", examId, studentId);
         try {
-            log.info("▶ full 시작: examId={}, studentId={}", examId, studentId);
-
-            // 1) 문제 전체
+            // 1) 모든 문항을 한 번에 로드
             List<ExamQuestion> qs = examQuestionService.findByExamId(examId);
             if (qs == null) qs = Collections.emptyList();
 
             // 2) 학생 답안
             List<Map<String,Object>> ua = examResultService.getUserAnswers(examId, studentId);
             if (ua == null) ua = Collections.emptyList();
-            Map<Object, Map<String,Object>> ansMap = ua.stream()
-                    .filter(m -> m.get("questionId") != null || m.get("examQuestionId") != null)
+            Map<String, Map<String,Object>> ansMap = ua.stream()
+                    .filter(m -> m.get("questionId") != null)
                     .collect(Collectors.toMap(
-                            m -> m.getOrDefault("questionId", m.get("examQuestionId")),
+                            m -> Objects.toString(m.get("questionId")),
                             m -> m,
-                            (first, second) -> second
+                            (a, b) -> b
                     ));
 
             // 3) 자동채점 결과
             List<Map<String,Object>> gl = gradingResultService.getGradingStatus(examId, studentId);
             if (gl == null) gl = Collections.emptyList();
-            Map<Object, Map<String,Object>> scoreMap = gl.stream()
+            Map<String, Map<String,Object>> scoreMap = gl.stream()
                     .filter(m -> m.get("questionId") != null)
                     .collect(Collectors.toMap(
-                            m -> m.get("questionId"),
+                            m -> Objects.toString(m.get("questionId")),
                             m -> m,
-                            (a,b) -> b
+                            (a, b) -> b
                     ));
 
             // 4) 합치기
             List<Map<String,Object>> full = new ArrayList<>();
             for (ExamQuestion q : qs) {
                 Map<String,Object> m = new HashMap<>();
+                m.put("questionId",    q.getId());
+                m.put("questionText",  q.getQuestion());
+                m.put("type",          q.getType());
+                List<String> opts = q.getDistractor()!=null ? q.getDistractor() : List.of();
+                m.put("options",       opts);
 
-                // 보기 옵션
-                List<String> opts = q.getDistractor() != null
-                        ? q.getDistractor()
-                        : Collections.emptyList();
-
-                // 정답 텍스트 및 인덱스 계산 (1-based → 0-based)
+                // 정답 텍스트/인덱스 계산
                 Object rawAnswer = q.getAnswer();
                 String correctText = "";
                 int correctIndex = -1;
-
-                if ("multiple".equals(q.getType())) {
+                if ("multiple".equalsIgnoreCase(q.getType())) {
                     try {
-                        int oneBased = 0;
-                        if (rawAnswer instanceof List<?> list && !list.isEmpty()) {
-                            oneBased = Integer.parseInt(String.valueOf(list.get(0)));
-                        } else {
-                            oneBased = Integer.parseInt(String.valueOf(rawAnswer));
-                        }
-                        correctIndex = oneBased - 1;  // 0-based 변환
+                        int one = (rawAnswer instanceof List<?> list && !list.isEmpty())
+                                ? Integer.parseInt(list.get(0).toString())
+                                : Integer.parseInt(rawAnswer.toString());
+                        correctIndex = one - 1;
                         if (correctIndex >= 0 && correctIndex < opts.size()) {
                             correctText = opts.get(correctIndex);
                         }
                     } catch (Exception e) {
-                        log.warn("객관식 정답 인덱스 오류: rawAnswer={}", rawAnswer);
+                        log.warn("정답 인덱스 파싱 실패: {}", rawAnswer);
                     }
+                    m.put("correctIndex", correctIndex);
                 } else {
                     correctText = rawAnswer != null ? rawAnswer.toString() : "";
                 }
-
-                // 자동채점 점수
-                int score = 0;
-                Map<String,Object> sc = scoreMap.get(q.getId());
-                if (sc != null && sc.get("score") != null) {
-                    try {
-                        score = ((Number) sc.get("score")).intValue();
-                    } catch (Exception e) {
-                        log.warn("점수 변환 실패: {}", sc.get("score"));
-                    }
-                }
-
-                // 기본 필드
-                m.put("questionId",    q.getId());
-                m.put("questionText",  q.getQuestion());
-                m.put("type",          q.getType());
-                m.put("options",       opts);
                 m.put("correctAnswer", correctText);
-                if ("multiple".equals(q.getType())) {
-                    m.put("correctIndex", correctIndex);
-                }
                 m.put("maxScore",      q.getQuestionScore());
-                m.put("autoScore",     score);
 
-                // 학생 답안 병합
+                // 자동채점 점수 병합
+                Map<String,Object> sc = scoreMap.get(q.getId());
+                int autoScore = sc!=null && sc.get("score") instanceof Number
+                        ? ((Number)sc.get("score")).intValue()
+                        : 0;
+                m.put("autoScore", autoScore);
+
+                // 학생답안 병합
                 Map<String,Object> uaEntry = ansMap.get(q.getId());
                 if (uaEntry != null) {
                     m.put("examResultId", uaEntry.get("examResultId"));
                     m.put("studentAnswer", uaEntry.get("userAnswer"));
-                    m.put("isGrade", uaEntry.getOrDefault("isGrade", 0));
+                    m.put("isGrade",       uaEntry.getOrDefault("isGrade", 0));
                 } else {
                     m.put("isGrade", 0);
                 }
@@ -197,7 +194,8 @@ public class GradingResultController {
 
         } catch (Exception e) {
             log.error("▶ full 에러", e);
-            return ResponseEntity.status(500).body(Map.of("error", e.getMessage()));
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "시험지 불러오기 중 오류가 발생했습니다."));
         }
     }
 
