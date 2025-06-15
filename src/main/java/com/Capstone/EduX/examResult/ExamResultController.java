@@ -54,17 +54,27 @@ public class ExamResultController {
 
     //답 저장하기(다수)
     @PostMapping("/save/multiple")
-    public ResponseEntity<?> saveMultipleAnswers(@RequestBody Map<String, Object> body) {
+    public ResponseEntity<?> saveMultiple(
+            @RequestBody Map<String, Object> reqBody
+    ) {
         try {
-            Long examId = Long.valueOf(body.get("examId").toString());
-            Long userId = Long.valueOf(body.get("userId").toString());
-            List<Map<String, Object>> answers = (List<Map<String, Object>>) body.get("answers");
+            // 1) 요청 바디에서 값 꺼내기
+            Long examId = ((Number)reqBody.get("examId")).longValue();
+            Long userId = ((Number)reqBody.get("userId")).longValue();
+            @SuppressWarnings("unchecked")
+            List<Map<String, Object>> answers =
+                    (List<Map<String, Object>>)reqBody.get("answers");
 
-            List<Long> savedIds = examResultService.saveMultipleAnswers(examId, userId, answers);
-
+            // 2) Service 호출
+            List<Long> savedIds = examResultService.saveMultipleAnswers(
+                    examId, userId, answers
+            );
             return ResponseEntity.ok(Map.of("savedIds", savedIds));
+
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("여러 답안 저장 중 오류가 발생했습니다.");
+            return ResponseEntity
+                    .status(HttpStatus.BAD_REQUEST)
+                    .body("여러 답안 저장 중 오류가 발생했습니다: " + e.getMessage());
         }
     }
 

@@ -7,4 +7,5 @@ public interface ExamQuestionRepository extends MongoRepository<ExamQuestion, St
     List<ExamQuestion> findByExamId(Long examId); // 시험 ID로 문제들 조회
     void deleteByExamId(Long examId);
     long countByExamId(Long examId);
+    List<ExamQuestion> findByExamIdOrderByNumberAsc(Long examId);
 }
