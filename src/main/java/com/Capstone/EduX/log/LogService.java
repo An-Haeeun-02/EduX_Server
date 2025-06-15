@@ -356,7 +356,7 @@ public class LogService {
                     LogType.IN_EXAM,
                     classroomId,
                     examInfoId,
-                    "자동 생성된 시험 입장 로그"
+                    "학생이 시험지에 처음 입장했습니다."
             );
 
             return ExamStatus.BEFORE;
