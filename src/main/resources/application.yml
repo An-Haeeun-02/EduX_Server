@@ -1,8 +1,8 @@
 spring:
   datasource:
-    url:
-    username:
-    password:
+    url: jdbc:mysql://localhost:3306/edux
+    username: root
+    password: root
     driver-class-name: com.mysql.cj.jdbc.Driver
 
   jpa:
@@ -13,4 +13,4 @@ spring:
 
   data:
     mongodb:
-      uri:
+      uri:  mongodb+srv://jeonhy1018:root@edux.rawuyuk.mongodb.net/EduX?retryWrites=true&w=majority&appName=eduX
