@@ -1,7 +1,9 @@
 package com.Capstone.EduX.log;
 
 import com.Capstone.EduX.Classroom.Classroom;
+import com.Capstone.EduX.LoginSession.LoginSessionRepository;
 import com.Capstone.EduX.StudentClassroom.StudentClassroom;
+import com.Capstone.EduX.StudentClassroom.StudentClassroomRepository;
 import com.Capstone.EduX.examInfo.ExamInfo;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -22,6 +24,7 @@ public class LogStudentController {
 
     private final LogService logService;
     private final LogRepository logRepository;
+    private final LoginSessionRepository loginSessionRepository;
 
     @PostMapping("/login")
     public ResponseEntity<String> logLogin(@RequestBody Map<String, String> request) {
@@ -38,16 +41,26 @@ public class LogStudentController {
 
     @PostMapping("/logout")
     public ResponseEntity<String> logLogout(@RequestBody Map<String, String> request) {
+        String studentId = request.get("studentId");
+        String timestampStr = request.get("timestamp");
+
+        // 1. 로그 저장
         logService.saveLog(
-                request.get("studentId"),
-                LocalDateTime.parse(request.get("timestamp")),
+                studentId,
+                LocalDateTime.parse(timestampStr),
                 LogType.LOGOUT,
                 null,
                 null,
                 "로그아웃 완료"
         );
-        return ResponseEntity.ok("로그아웃 로그 저장 완료");
+
+        // 2. 로그인 세션 삭제
+        loginSessionRepository.findByStudent_StudentId(studentId)
+                .ifPresent(loginSessionRepository::delete);
+
+        return ResponseEntity.ok("로그아웃 로그 및 세션 정리 완료");
     }
+
 
     @PostMapping("/in-classroom")
     public ResponseEntity<String> logInClassroom(@RequestBody Map<String, String> request) {
